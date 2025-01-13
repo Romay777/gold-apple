@@ -5,6 +5,21 @@ from src.core.services.quest_manager import QuestManager
 
 
 def main():
+
+    # Вывести данные аккаунта
+    api = GameAPI(BASE_URL, AUTH_PARAMS, HEADERS)
+    beauty_manager = BeautyManager(api)
+    beauty_manager.print_profile_normalized()
+
+    # Выполнение бьюти процедур
+    # api = GameAPI(BASE_URL, AUTH_PARAMS, HEADERS)
+    # beauty_manager = BeautyManager(api)
+    # beauty_manager.perform_procedures()
+
+    # TODO: Поставить реакцию на аккаунт друга
+
+    # TODO: Сыграть в мини игру
+
     # Получение квестов
     api = QuestAPI(BASE_URL, AUTH_PARAMS, HEADERS)
     quest_manager = QuestManager(api)
@@ -13,10 +28,7 @@ def main():
     # Сбор наград за выполненные ежедневные квесты
     quest_manager.collect_rewards_for_completed_quests()
 
-    # Выполнение бьюти процедур
-    # api = GameAPI(BASE_URL, AUTH_PARAMS, HEADERS)
-    # beauty_manager = BeautyManager(api)
-    # beauty_manager.perform_procedures()
+
 
 
 if __name__ == "__main__":

@@ -52,7 +52,7 @@ class QuestManager:
                 continue
             for quest in quests:
                 print(f"- {quest.text}")
-                if quest.progress:
+                if quest.progress and status != QuestStatus.COMPLETED_COLLECTED:
                     print(f"    · Прогресс: {quest.progress}/{quest.trigger_count}")
 
     def collect_rewards_for_completed_quests(self):
@@ -69,6 +69,6 @@ class QuestManager:
         for quest in completed_quests:
             result = self.api.collect_quest_reward(quest.id)
             if result and result.get("success"):
-                print(f"    Награда за квест '{quest.text}' успешно получена")
+                print(f"    \033[92mНаграда за квест '{quest.text}' успешно получена\033[0m")
             else:
-                print(f"    Не удалось получить награду за квест '{quest.text}'")
+                print(f"    \033[91mНе удалось получить награду за квест '{quest.text}'\033[0m")

@@ -22,6 +22,7 @@ class Profile:
     attempts_cooldown: int
     attempts_restored_at: int
     beauty_procedures: list[BeautyProcedure]
+    username: str
 
 
     def can_afford_procedure(self, procedure_cost: int) -> bool:

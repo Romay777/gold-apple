@@ -33,13 +33,28 @@ class BeautyManager:
                     description=proc.get("description")
                 )
                 for proc in profile_data.get("beautyProcedures", [])
-            ]
+            ],
+            username=profile_data.get("username"),
         )
 
     def get_profile(self) -> Optional[Profile]:
         """Получает профиль игрока с информацией о бьюти процедурах"""
         result = self.api.get_profile()
         return self._parse_profile(result)
+
+    def print_profile_normalized(self) -> None:
+        profile = self.get_profile()
+        if not profile:
+            print("Не удалось получить профиль")
+            return
+
+        print(
+            "\033[95m\n=== Профиль игрока ===\033[0m"
+            f"\n👤 Имя: {profile.username}"
+            f"\n🌟 Рейтинг: {profile.score}"
+            f"\n⚡ Энергия: {profile.attempts}"
+            f"\n🪙 Баланс: {profile.money} "
+        )
 
     def perform_procedures(self) -> None:
         """Выполняет каждую бьюти процедуру по одному разу"""
