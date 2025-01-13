@@ -14,9 +14,9 @@ def main():
     quest_manager.collect_rewards_for_completed_quests()
 
     # Выполнение бьюти процедур
-    api = GameAPI(BASE_URL, AUTH_PARAMS, HEADERS)
-    beauty_manager = BeautyManager(api)
-    beauty_manager.perform_procedures()
+    # api = GameAPI(BASE_URL, AUTH_PARAMS, HEADERS)
+    # beauty_manager = BeautyManager(api)
+    # beauty_manager.perform_procedures()
 
 
 if __name__ == "__main__":
