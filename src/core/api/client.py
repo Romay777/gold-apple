@@ -2,6 +2,7 @@ from typing import Optional
 
 import requests
 
+from src.config.constants import AUTH_PARAMS
 from src.core.api.endpoints import GameEndpoints
 
 
@@ -11,14 +12,15 @@ class QuestAPI:
         self.auth_params = auth_params
         self.headers = headers
 
-    def _make_request(self, endpoint: str, method: str = "GET", data: dict = None) -> Optional[dict]:
+    def _make_request(self, endpoint: str, method: str = "GET", params: dict = None, data: dict = None) -> Optional[dict]:
+        #  TODO: Убрать дублирование _make_request в GameAPI и QuestAPI
         try:
             url = f"{self.base_url}/{endpoint}"
             response = requests.request(
                 method=method,
                 url=url,
                 headers=self.headers,
-                params=self.auth_params,
+                params=params or self.auth_params,
                 json=data
             )
 
@@ -38,9 +40,9 @@ class QuestAPI:
     def get_quests(self) -> Optional[dict]:
         return self._make_request(GameEndpoints.QUESTS)
 
-    def collect_reward(self, quest_id: str) -> Optional[dict]:
-        """Будущий метод для сбора наград"""
-        return self._make_request(f"{GameEndpoints.QUESTS}/{quest_id}/collect", method="POST")
+    def collect_quest_reward(self, quest_id: str) -> Optional[dict]:
+        params = {**self.auth_params, "id": quest_id}
+        return self._make_request(GameEndpoints.COLLECT_QUEST, method="POST", params=params)
 
     def complete_quest(self, quest_id: str) -> Optional[dict]:
         """Будущий метод для выполнения квеста"""
@@ -83,5 +85,5 @@ class GameAPI:
         return self._make_request(GameEndpoints.BEAUTY_PROCEDURE, method="POST", params=params)
 
     def get_profile(self) -> Optional[dict]:
-        return self._make_request(GameEndpoints.PROFILE)
+        return self._make_request(GameEndpoints.PROFILE, method="POST", params=AUTH_PARAMS)
 

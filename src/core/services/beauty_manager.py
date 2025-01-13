@@ -7,7 +7,6 @@ from src.core.models.beauty_procedure import BeautyProcedure, Profile
 class BeautyManager:
     def __init__(self, api: GameAPI):
         self.api = api
-        self.procedure_ids = [1, 2, 3]
 
     def _parse_profile(self, data: dict) -> Optional[Profile]:
         if not data or not data.get("success"):
@@ -44,12 +43,16 @@ class BeautyManager:
 
     def perform_procedures(self) -> None:
         """Выполняет каждую бьюти процедуру по одному разу"""
+        print("\033[96m\n=== Выполнение бьюти-процедур ===\n\033[0m")
+
         profile = self.get_profile()
         if not profile:
             print("Не удалось получить профиль")
             return
 
-        for procedure_id in self.procedure_ids:
+        procedure_ids = [profile.beauty_procedures[0].id, profile.beauty_procedures[1].id, profile.beauty_procedures[2].id]
+
+        for procedure_id in procedure_ids:
             # Находим процедуру в списке доступных
             procedure = next(
                 (p for p in profile.beauty_procedures if p.id == procedure_id),
@@ -63,9 +66,12 @@ class BeautyManager:
             if profile.can_afford_procedure(procedure.cost):
                 result = self.api.perform_beauty_procedure(procedure_id)
                 if result and result.get("success"):
-                    print(f"Успешно выполнена процедура: {procedure.title}")
+                    print(f"☑️ Успешно выполнена процедура: {procedure.title}")
                     profile.money -= procedure.cost
                 else:
-                    print(f"Не удалось выполнить процедуру: {procedure.title}")
+                    print(f"⚠️ Не удалось выполнить процедуру: {procedure.title}")
             else:
-                print(f"Недостаточно денег для процедуры: {procedure.title}")
+                print(f"⚠️ Недостаточно денег для процедуры: {procedure.title}")
+
+        print(f"\n- Остаток денег: {profile.money} 🪙")
+        print("\033[96m\n=== Выполнение бьюти-процедур завершено ===\n\033[0m")
