@@ -1,3 +1,4 @@
+import random
 from typing import Optional
 import requests
 from src.config.constants import AUTH_PARAMS
@@ -55,3 +56,19 @@ class GameAPI(BaseAPI):
 
     def get_profile(self) -> Optional[dict]:
         return self._make_request(GameEndpoints.PROFILE, method="POST", params=AUTH_PARAMS)
+
+class UserAPI(BaseAPI):
+    def get_favorites(self, page: int = 1, per_page: int = 5) -> Optional[dict]:
+        params = {
+            **self.auth_params,
+            "page": page,
+            "per-page": per_page
+        }
+        return self._make_request(GameEndpoints.FAVORITES, params=params)
+
+    def like_profile(self, uid: str, like_type: int = random.choice([1, 2, 3, 4])) -> Optional[dict]:
+        data = {
+            "uid": uid,
+            "type": like_type
+        }
+        return self._make_request(GameEndpoints.LIKE, method="POST", data=data)

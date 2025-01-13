@@ -45,15 +45,16 @@ class QuestManager:
 
         print("\033[38;5;223m\n=== Статус Дневных Задач ===\033[0m", end="")
         for status, quests in daily_quests.items():
-            print(f"\033[97m\n{status.value.upper()} ({len(quests)} задач(-a):\033[0m")
+            print(f"\033[97m\n{status.value.upper()} ({len(quests)} задач):\033[0m")
 
             if not quests:
-                print("🎉 Все задачи выполнены")
+                print("🎉 Все награды получены")
                 continue
             for quest in quests:
                 print(f"- {quest.text}")
                 if quest.progress and status != QuestStatus.COMPLETED_COLLECTED:
                     print(f"    · Прогресс: {quest.progress}/{quest.trigger_count}")
+        print("\033[38;5;223m============================\033[0m")
 
     def collect_rewards_for_completed_quests(self):
         """Собирает награды за выполненные квесты"""
@@ -64,6 +65,7 @@ class QuestManager:
 
         if not completed_quests:
             print("    🎁 Все награды получены")
+            print("\033[96m=========================================\033[0m")
             return
 
         for quest in completed_quests:
@@ -72,3 +74,4 @@ class QuestManager:
                 print(f"    \033[92mНаграда за квест '{quest.text}' успешно получена\033[0m")
             else:
                 print(f"    \033[91mНе удалось получить награду за квест '{quest.text}'\033[0m")
+        print("\033[96m=========================================\033[0m")

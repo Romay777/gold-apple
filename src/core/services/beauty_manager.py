@@ -54,6 +54,7 @@ class BeautyManager:
             f"\n🌟 Рейтинг: {profile.score}"
             f"\n⚡ Энергия: {profile.attempts}"
             f"\n🪙 Баланс: {profile.money} "
+            "\033[95m\n=======================\033[0m"
         )
 
     def perform_procedures(self) -> None:
@@ -88,5 +89,5 @@ class BeautyManager:
             else:
                 print(f"⚠️ Недостаточно денег для процедуры: {procedure.title}")
 
-        print(f"\n- Остаток денег: {profile.money} 🪙")
+        print(f"\n- Баланс: {profile.money} 🪙")
         print("\033[96m\n=== Выполнение бьюти-процедур завершено ===\n\033[0m")

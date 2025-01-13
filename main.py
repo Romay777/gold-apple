@@ -1,22 +1,24 @@
 from src.config.constants import BASE_URL, AUTH_PARAMS, HEADERS
-from src.core.api.client import QuestAPI, GameAPI
+from src.core.api.client import QuestAPI, GameAPI, UserAPI
 from src.core.services.beauty_manager import BeautyManager
 from src.core.services.quest_manager import QuestManager
+from src.core.services.user_manager import UserManager
 
 
 def main():
 
-    # Вывести данные аккаунта
+    # Данные аккаунта
     api = GameAPI(BASE_URL, AUTH_PARAMS, HEADERS)
     beauty_manager = BeautyManager(api)
     beauty_manager.print_profile_normalized()
 
     # Выполнение бьюти процедур
-    # api = GameAPI(BASE_URL, AUTH_PARAMS, HEADERS)
-    # beauty_manager = BeautyManager(api)
-    # beauty_manager.perform_procedures()
+    beauty_manager.perform_procedures()
 
-    # TODO: Поставить реакцию на аккаунт друга
+    #Поставить реакцию на аккаунт друга
+    api = UserAPI(BASE_URL, AUTH_PARAMS, HEADERS)
+    users_manager = UserManager(api)
+    users_manager.like_first_friend()
 
     # TODO: Сыграть в мини игру
 

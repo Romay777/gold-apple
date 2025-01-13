@@ -3,4 +3,5 @@ class GameEndpoints:
     PROFILE = "user/auth"
     QUESTS = "game/quests"
     COLLECT_QUEST = "game/collect-quest"
-    FRIENDS = "user/favorites"
+    FAVORITES = "user/favorites"
+    LIKE = "user/like"
