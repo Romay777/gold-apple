@@ -1,16 +1,14 @@
-from aiogram import Router, F
+from aiogram import Router
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import Message
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
-from sqlalchemy.exc import IntegrityError
-
-from src.bot.database import User
 
 from main import request_profile_data
+from src.bot.database import User
 from src.bot.keyboards import get_start_elf_keyboard
 
 router = Router()
@@ -35,16 +33,13 @@ async def show_account_info(message: Message, session: AsyncSession):
         if user:
             profile = await request_profile_data(user.token)
             await message.answer(
-            f"👤 Имя: <b>{profile.username}</b>\n"
-            f"🌟 Рейтинг: <b>{profile.score}</b>\n"
-            f"⚡ Энергия: <b>{profile.attempts}</b>\n"
-            f"🪙 Баланс: <b>{profile.money}</b>",
+                generate_profile_message(profile),
                 reply_markup=get_start_elf_keyboard(),
                 parse_mode=ParseMode.HTML
             )
         else:
             await message.answer("Вы не авторизованы. Пожалуйста, отправьте ваш Bearer token:")
-    except Exception as e:
+    except Exception:
         await message.answer("Произошла ошибка при получении информации о пользователе.")
 
 @router.message(AuthStates.waiting_for_token)
@@ -75,15 +70,21 @@ async def process_token(message: Message, state: FSMContext, session: AsyncSessi
         profile = await request_profile_data(message.text)  # You'll need to implement this
 
         await message.answer(
-            f"👤 Имя: <b>{profile.username}</b>\n"
-            f"🌟 Рейтинг: <b>{profile.score}</b>\n"
-            f"⚡ Энергия: <b>{profile.attempts}</b>\n"
-            f"🪙 Баланс: <b>{profile.money}</b>",
+            generate_profile_message(profile),
             reply_markup=get_start_elf_keyboard(),
             parse_mode=ParseMode.HTML
         )
 
-    except Exception as e:
+    except Exception:
         await message.answer(
             "Произошла ошибка при сохранении токена. Пожалуйста, попробуйте снова или обратитесь к администратору.")
         await state.clear()
+
+
+def generate_profile_message(profile):
+    return (
+        f"👤 Имя: {profile.username}\n"
+        f"🌟 Рейтинг: {profile.score}({profile.level}lvl)\n"
+        f"⚡ Энергия: {profile.attempts}\n"
+        f"🪙 Баланс: {profile.money}"
+    )

@@ -88,7 +88,7 @@ class BeautyManager:
                 result = self.api.perform_beauty_procedure(procedure_id)
                 if result and result.get("success"):
                     print(f"☑️ Успешно выполнена процедура: <b>{procedure.title}</b>")
-                    await message.edit_text(f"☑️ Успешно выполнена процедура: {procedure.title}</b>",
+                    await message.edit_text(f"☑️ Успешно выполнена процедура: <b>{procedure.title}</b>",
                                             parse_mode=ParseMode.HTML)
                     profile.money -= procedure.cost
                 else:

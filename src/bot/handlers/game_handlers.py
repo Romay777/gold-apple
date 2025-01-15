@@ -7,6 +7,7 @@ import random
 from sqlalchemy import select
 
 from src.bot.database import User
+from src.bot.handlers.auth_handlers import generate_profile_message
 from src.bot.keyboards import get_start_elf_keyboard
 from src.config.constants import BASE_URL, AUTH_PARAMS, HEADERS
 from src.core.api.client import GameAPI, UserAPI, QuestAPI
@@ -77,6 +78,9 @@ async def process_elf_care(callback: CallbackQuery, session):
         "🎮 Начинаем играть в <b>мини-игры</b>...",
         parse_mode=ParseMode.HTML
     )
+
+    await asyncio.sleep(1)
+
     await game_manager.auto_play_games(message)
 
     await asyncio.sleep(random.randint(2, 4))
@@ -90,7 +94,7 @@ async def process_elf_care(callback: CallbackQuery, session):
     beauty_manager = BeautyManager(game_api)
     await beauty_manager.perform_procedures(message)
 
-    await asyncio.sleep(random.randint(2, 4))
+    await asyncio.sleep(random.randint(3, 5))
 
     await message.edit_text(
         "🧝‍♂️ <b>Уход за эльфом в процессе!</b>\n\n"
@@ -123,18 +127,15 @@ async def process_elf_care(callback: CallbackQuery, session):
     # Final profile update
     profile = await beauty_manager.get_profile()
     await message.edit_text(
-        "✨ Уход за эльфом успешно завершен!\n\n"
-        f"👤 Имя: <b>{profile.username}</b>\n"
-        f"🌟 Рейтинг: <b>{profile.score}</b>\n"
-        f"⚡ Энергия: <b>{profile.attempts}</b>\n"
-        f"🪙 Баланс: <b>{profile.money}</b>",
+            generate_profile_message(profile),
             reply_markup=get_start_elf_keyboard(),
             parse_mode=ParseMode.HTML
     )
 
 @router.callback_query(F.data == "perform_3_procedures")
 async def perform_procedures(callback: CallbackQuery, session):
-    message = await callback.message.edit_text("🧝‍♂️ <b>Выполняем процедуры!</b>\n⏳ Получаю данные...", parse_mode=ParseMode.HTML)
+    message = await callback.message.edit_text("🧝‍♂️ <b>Выполняем процедуры!</b>\n⏳ Получаю данные...",
+                                               parse_mode=ParseMode.HTML)
 
     game_api = await get_api(callback, session, "game")
     beauty_manager = BeautyManager(game_api)
@@ -143,7 +144,8 @@ async def perform_procedures(callback: CallbackQuery, session):
 
 @router.callback_query(F.data == "play_games")
 async def play_games(callback: CallbackQuery, session):
-    message = await callback.message.edit_text("🧝‍♂️ <b>Начинаю играть!</b>\n⏳ Получаю данные...", parse_mode=ParseMode.HTML)
+    message = await callback.message.edit_text("🧝‍♂️ <b>Начинаю играть!</b>\n⏳ Получаю данные...",
+                                               parse_mode=ParseMode.HTML)
 
     game_api = await get_api(callback, session, "game")
     game_manager = GameManager(game_api)
@@ -152,7 +154,8 @@ async def play_games(callback: CallbackQuery, session):
 
 @router.callback_query(F.data == "give_like")
 async def give_like(callback: CallbackQuery, session):
-    await callback.message.edit_text("🧝‍♂️ <b>Ставлю лайк!</b>\n⏳ Получаю данные...", parse_mode=ParseMode.HTML)
+    await callback.message.edit_text("🧝‍♂️ <b>Ставлю лайк!</b>\n⏳ Получаю данные...",
+                                     parse_mode=ParseMode.HTML)
 
     user_api = await get_api(callback, session, "user")
     users_manager = UserManager(user_api)
@@ -161,14 +164,16 @@ async def give_like(callback: CallbackQuery, session):
 
 @router.callback_query(F.data == "view_quests")
 async def show_quests(callback: CallbackQuery, session):
-    message = await callback.message.edit_text("🧝‍♂️ </b>Просматриваю квесты и награды!</b>\n⏳ Получаю данные...")
+    message = await callback.message.edit_text("🧝‍♂️ <b>Просматриваю квесты и награды!</b>\n⏳ Получаю данные...",
+                                               parse_mode=ParseMode.HTML)
     await asyncio.sleep(0.5)
 
     quest_api = await get_api(callback, session, "quest")
     quest_manager = QuestManager(quest_api)
 
     await message.edit_text(
-        f"{quest_manager.format_rewards_collection()}"
+        f"{quest_manager.format_rewards_collection()}",
+        parse_mode=ParseMode.HTML
     )
 
     await asyncio.sleep(1)

@@ -95,7 +95,6 @@ class QuestManager:
                 if quest.progress and status != QuestStatus.COMPLETED_COLLECTED:
                     messages.append(f"    · Прогресс: {quest.progress}/{quest.trigger_count}")
 
-        messages.append("\n============================")
         return "\n".join(messages)
 
     def format_rewards_collection(self) -> str:
@@ -106,7 +105,7 @@ class QuestManager:
         completed_quests = quests.get(QuestStatus.COMPLETED_UNCOLLECTED, [])
 
         if not completed_quests:
-            messages.append("🎁 Все награды получены")
+            messages.append("🎁 <b>Все награды получены</b>")
             return "\n".join(messages)
 
         for quest in completed_quests:

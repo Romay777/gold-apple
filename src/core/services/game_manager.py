@@ -55,7 +55,7 @@ class GameManager:
         games = result.get("data", {}).get("games", [])
         return [self._parse_game(game) for game in games]
 
-    async def _play_game(self, game_name: str) -> bool:
+    async def _play_game(self, game_name: str, message: Message) -> bool:
         """
         Базовый метод для запуска и игры в любую игру
         :param game_name: название игры
@@ -86,26 +86,28 @@ class GameManager:
         end_result = end_game_method(session.max_score)
         if end_result and end_result.get("success"):
             print(f"\033[97mУспешно завершена игра {game_name} со счетом {session.max_score}\033[0m")
+            await message.edit_text(f"🎮 <b>{game_name}</b> успешно завершена! Счет: {session.max_score}", parse_mode=ParseMode.HTML)
             return True
         else:
             print(f"\033[91mНе удалось завершить игру {game_name}\033[0m")
+            await message.edit_text(f"🎮 <b>{game_name}</b> не удалось завершить!", parse_mode=ParseMode.HTML)
             return False
 
-    async def play_jumper(self) -> bool:
+    async def play_jumper(self, message: Message) -> bool:
         """Играет в Jumper"""
-        return await self._play_game("Jumper")
+        return await self._play_game("Jumper", message)
 
-    async def play_match3(self) -> bool:
+    async def play_match3(self, message: Message) -> bool:
         """Играет в Match3"""
-        return await self._play_game("Match3")
+        return await self._play_game("Match3", message)
 
-    async def play_memories(self) -> bool:
+    async def play_memories(self, message: Message) -> bool:
         """Играет в Memories"""
-        return await self._play_game("Memories")
+        return await self._play_game("Memories", message)
 
-    async def play_runner(self) -> bool:
+    async def play_runner(self, message: Message) -> bool:
         """Играет в Runner"""
-        return await self._play_game("Runner")
+        return await self._play_game("Runner", message)
 
 
 
@@ -137,13 +139,14 @@ class GameManager:
                 try:
                     await message.edit_text(f"🎮 Играем в <b>{game_name}</b>...", parse_mode=ParseMode.HTML)
                     play_method = getattr(self, f"play_{game_name.lower()}")
-                    if not await play_method():
+                    if not await play_method(message):
                         await message.edit_text(f"❌ Не смогли сыграть в <b>{game_name}</b>", parse_mode=ParseMode.HTML)
-
+                    await asyncio.sleep(2)
                     # Обновляем уровень энергии после игры
                     user_energy = await self.get_user_energy()
                     if not user_energy:
                         await message.edit_text(f"⚡ <b>Закончилась энергия</b>", parse_mode=ParseMode.HTML)
+                        await asyncio.sleep(2)
                         break
 
                 except Exception as e:
