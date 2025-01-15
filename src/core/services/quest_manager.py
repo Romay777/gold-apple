@@ -51,7 +51,7 @@ class QuestManager:
                 print("🎉 Все награды получены")
                 continue
             for quest in quests:
-                print(f"- {quest.text}")
+                print(f"— {quest.text}")
                 if quest.progress and status != QuestStatus.COMPLETED_COLLECTED:
                     print(f"    · Прогресс: {quest.progress}/{quest.trigger_count}")
         print("\033[38;5;223m============================\033[0m")
@@ -64,14 +64,14 @@ class QuestManager:
         completed_quests = quests.get(QuestStatus.COMPLETED_UNCOLLECTED, [])
 
         if not completed_quests:
-            print("    🎁 Все награды получены")
+            print("🎁 Все награды получены")
             print("\033[96m=========================================\033[0m")
             return
 
         for quest in completed_quests:
             result = self.api.collect_quest_reward(quest.id)
             if result and result.get("success"):
-                print(f"    \033[92mНаграда за квест '{quest.text}' успешно получена\033[0m")
+                print(f"—\033[92mНаграда за квест '{quest.text}' успешно получена\033[0m")
             else:
-                print(f"    \033[91mНе удалось получить награду за квест '{quest.text}'\033[0m")
+                print(f"—   \033[91mНе удалось получить награду за квест '{quest.text}'\033[0m")
         print("\033[96m=========================================\033[0m")

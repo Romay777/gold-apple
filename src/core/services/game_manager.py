@@ -33,6 +33,11 @@ class GameManager:
         )
 
     def _parse_game_session(self, session_data: dict) -> Optional[GameSession]:
+        """
+        Парсит данные игровой сессии
+        :param session_data:
+        :return: GameSession - данные об игровой сессии
+        """
         log = session_data.get("data", {}).get("log", {})
         return GameSession(
             game_type=log.get("type"),
@@ -48,13 +53,18 @@ class GameManager:
         games = result.get("data", {}).get("games", [])
         return [self._parse_game(game) for game in games]
 
-    def play_jumper(self) -> bool:
-        """Играет в Jumper"""
+    def _play_game(self, game_name: str) -> bool:
+        """
+        Базовый метод для запуска и игры в любую игру
+        :param game_name: название игры
+        :return: bool - успешность выполнения
+        """
+        print(f"\033[33m     Начинаем игру {game_name}\033[0m")
+
         # Начинаем игру
-        print("\033[33m    - Начинаем игру Jumper\033[0m")
-        result = self.api.start_game("Jumper")
+        result = self.api.start_game(game_name)
         if not result or not result.get("success"):
-            print("Не удалось начать игру Jumper")
+            print(f"Не удалось начать игру {game_name}")
             return False
 
         # Парсим данные сессии
@@ -64,91 +74,36 @@ class GameManager:
             return False
 
         # Имитируем реальную игру с задержкой
-        delay = random.uniform(9, 15)  # случайная задержка от 2 до 4 секунд
+        delay = random.uniform(9, 15)
         time.sleep(delay)
 
+        # Получаем соответствующий метод для завершения конкретной игры
+        end_game_method = getattr(self.api, f"end_{game_name.lower()}_game")
+
         # Завершаем игру
-        end_result = self.api.end_jumper_game(session.max_score)
+        end_result = end_game_method(session.max_score)
         if end_result and end_result.get("success"):
-            print(f"\033[97mУспешно завершена игра Jumper со счетом {session.max_score}\033[0m")
+            print(f"\033[97mУспешно завершена игра {game_name} со счетом {session.max_score}\033[0m")
             return True
         else:
-            print("\033[91mНе удалось завершить игру Jumper\033[0m")
+            print(f"\033[91mНе удалось завершить игру {game_name}\033[0m")
             return False
+
+    def play_jumper(self) -> bool:
+        """Играет в Jumper"""
+        return self._play_game("Jumper")
 
     def play_match3(self) -> bool:
         """Играет в Match3"""
-        # Начинаем игру
-        print("\033[33m    - Начинаем игру Match3\033[0m")
-        result = self.api.start_game("Match3")
-        if not result or not result.get("success"):
-            print("Не удалось начать игру Match3")
-            return False
-
-        # Парсим данные сессии
-        session = self._parse_game_session(result)
-        if not session:
-            print("Не удалось получить данные игровой сессии")
-            return False
-
-        # Имитируем реальную игру с задержкой
-        delay = random.uniform(9, 15)  # случайная задержка от 2 до 4 секунд
-        time.sleep(delay)
-
-        # Завершаем игру
-        end_result = self.api.end_match3_game(session.max_score)
-        if end_result and end_result.get("success"):
-            print(f"\033[97mУспешно завершена игра Match3 со счетом {session.max_score}\033[0m")
-            return True
+        return self._play_game("Match3")
 
     def play_memories(self) -> bool:
         """Играет в Memories"""
-        print("\033[33m    - Начинаем игру Memories\033[0m")
-        result = self.api.start_game("Memories")
-        if not result or not result.get("success"):
-            print("Не удалось начать игру Memories")
-            return False
-
-        # Парсим данные сессии
-        session = self._parse_game_session(result)
-        if not session:
-            print("Не удалось получить данные игровой сессии")
-            return False
-
-        # Имитируем реальную игру с задержкой
-        delay = random.uniform(9, 15)  # случайная задержка от 2 до 4 секунд
-        time.sleep(delay)
-
-        # Завершаем игру
-        end_result = self.api.end_memories_game(session.max_score)
-        if end_result and end_result.get("success"):
-            print(f"\033[97mУспешно завершена игра Memories со счетом {session.max_score}\033[0m")
-            return True
-
+        return self._play_game("Memories")
 
     def play_runner(self) -> bool:
         """Играет в Runner"""
-        print("\033[33m    - Начинаем игру Runner\033[0m")
-        result = self.api.start_game("Runner")
-        if not result or not result.get("success"):
-            print("Не удалось начать игру Runner")
-            return False
-
-        # Парсим данные сессии
-        session = self._parse_game_session(result)
-        if not session:
-            print("Не удалось получить данные игровой сессии")
-            return False
-
-        # Имитируем реальную игру с задержкой
-        delay = random.uniform(9, 15)  # случайная задержка от 2 до 4 секунд
-        time.sleep(delay)
-
-        # Завершаем игру
-        end_result = self.api.end_runner_game(session.max_score)
-        if end_result and end_result.get("success"):
-            print(f"\033[97mУспешно завершена игра Runner со счетом {session.max_score}\033[0m")
-            return True
+        return self._play_game("Runner")
 
 
 
@@ -162,15 +117,19 @@ class GameManager:
             games = self.get_available_games()
             user_energy = self.get_user_energy()
 
-            if not user_energy:
-                print("Не удалось получить данные профиля игрока")
+            if user_energy < 3:
+                print(f"Недостаточно энергии: {user_energy}")
                 break
+            elif not user_energy:
+                print("Не удалось получить энергию пользователя")
+                break
+
 
             for game_name in game_sequence:
                 game = next((g for g in games if g.name == game_name), None)
 
                 if not game or not game.is_available or user_energy < game.energy:
-                    print(f"Игра {game_name} недоступна или закончилась энергия")
+                    print(f"Игра {game_name} недоступна или закончилась энергия (кол-во: {user_energy})")
                     continue
 
                 try:

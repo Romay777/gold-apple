@@ -13,27 +13,25 @@ def main():
     beauty_manager = BeautyManager(api)
     beauty_manager.print_profile_normalized()
 
-    # # Выполнение бьюти процедур
-    # beauty_manager.perform_procedures()
-    #
-    # #Поставить реакцию на аккаунт друга
-    # api = UserAPI(BASE_URL, AUTH_PARAMS, HEADERS)
-    # users_manager = UserManager(api)
-    # users_manager.like_first_friend()
-
-    # TODO: Сыграть в мини игры
-    api = GameAPI(BASE_URL, AUTH_PARAMS, HEADERS)
+    # Сыграть в мини игры
     game_manager = GameManager(api)
     game_manager.auto_play_games()
 
+    # Выполнение бьюти процедур
+    beauty_manager.perform_procedures()
 
-    # # Получение квестов
-    # api = QuestAPI(BASE_URL, AUTH_PARAMS, HEADERS)
-    # quest_manager = QuestManager(api)
-    # quest_manager.print_daily_quests_status()
-    #
-    # # Сбор наград за выполненные ежедневные квесты
-    # quest_manager.collect_rewards_for_completed_quests()
+    # Поставить реакцию на аккаунт друга
+    api = UserAPI(BASE_URL, AUTH_PARAMS, HEADERS)
+    users_manager = UserManager(api)
+    users_manager.like_first_friend()
+
+    # Получение квестов
+    api = QuestAPI(BASE_URL, AUTH_PARAMS, HEADERS)
+    quest_manager = QuestManager(api)
+    quest_manager.print_daily_quests_status()
+
+    # Сбор наград за выполненные ежедневные квесты
+    quest_manager.collect_rewards_for_completed_quests()
 
 
 

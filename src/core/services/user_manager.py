@@ -28,8 +28,8 @@ class UserManager:
         like_result = self.api.like_profile(first_friend.uid)
 
         if like_result and like_result.get("success"):
-            print(f"\033[92mУспешно поставлен лайк пользователю {first_friend.username}\033[0m")
+            print(f"\n\033[92mУспешно поставлен лайк пользователю {first_friend.username}\033[0m")
             return True
         else:
-            print(f"\033[91mНе удалось поставить лайк пользователю {first_friend.username}\033[0m")
+            print(f"\n\033[91mНе удалось поставить лайк пользователю {first_friend.username}\033[0m")
             return False
