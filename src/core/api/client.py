@@ -51,11 +51,79 @@ class QuestAPI(BaseAPI):
 
 class GameAPI(BaseAPI):
     def perform_beauty_procedure(self, procedure_id: int) -> Optional[dict]:
+        """
+        Выполняет бьюти процедуру.
+        Args:
+            procedure_id: int - ID процедуры
+        Returns:
+            Optional[dict] - ответ от сервера
+        """
         params = {**self.auth_params, "id": procedure_id}
         return self._make_request(GameEndpoints.BEAUTY_PROCEDURE, method="POST", params=params)
 
     def get_profile(self) -> Optional[dict]:
+        """
+        Получает профиль игрока.
+        Returns:
+            Optional[dict] - ответ от сервера
+        """
         return self._make_request(GameEndpoints.PROFILE, method="POST", params=AUTH_PARAMS)
+
+    def get_games_list(self) -> Optional[dict]:
+        """
+        Получает список доступных игр.
+        Returns:
+            Optional[dict] - ответ от сервера
+        """
+        return self._make_request(GameEndpoints.GAME_LIST)
+
+    def start_game(self, game_type: str) -> Optional[dict]:
+        """
+        Начинает игру.
+        Args:
+            game_type: str - тип игры
+        Returns:
+            Optional[dict] - ответ от сервера
+        """
+        data = {"type": game_type}
+        return self._make_request(GameEndpoints.GAME_START, method="POST", data=data)
+
+    def _end_game(self, score: int, additional_data: dict = None) -> Optional[dict]:
+        """
+        Базовый метод для завершения игры.
+        Args:
+            score: int - набранные очки
+            additional_data: dict - дополнительные данные для конкретной игры
+        Returns:
+            Optional[dict] - ответ от сервера
+        """
+        data = {
+            "is_win": 1,
+            "score": score
+        }
+
+        if additional_data:
+            data.update(additional_data)
+
+        return self._make_request(GameEndpoints.GAME_END, method="POST", data=data)
+
+    def end_jumper_game(self, score: int) -> Optional[dict]:
+        return self._end_game(score)
+
+    def end_match3_game(self, score: int) -> Optional[dict]:
+        additional_data = {
+            "ram": 2,
+            "cross": 2,
+            "color": 2
+        }
+        return self._end_game(score, additional_data)
+
+    def end_memories_game(self, score: int) -> Optional[dict]:
+        return self._end_game(score)
+
+    def end_runner_game(self, score: int):
+        return self._end_game(score)
+
 
 class UserAPI(BaseAPI):
     def get_favorites(self, page: int = 1, per_page: int = 5) -> Optional[dict]:
