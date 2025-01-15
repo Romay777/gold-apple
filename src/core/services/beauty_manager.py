@@ -1,3 +1,7 @@
+import asyncio
+
+from aiogram.enums import ParseMode
+from aiogram.types import Message
 from typing import Optional
 
 from src.core.api.client import GameAPI
@@ -37,13 +41,13 @@ class BeautyManager:
             username=profile_data.get("username"),
         )
 
-    def get_profile(self) -> Optional[Profile]:
+    async def get_profile(self) -> Optional[Profile]:
         """Получает профиль игрока с информацией о бьюти процедурах"""
         result = self.api.get_profile()
         return self._parse_profile(result)
 
-    def print_profile_normalized(self) -> None:
-        profile = self.get_profile()
+    async def print_profile_normalized(self) -> None:
+        profile = await self.get_profile()
         if not profile:
             print("Не удалось получить профиль")
             return
@@ -57,16 +61,17 @@ class BeautyManager:
             "\033[95m\n=======================\033[0m"
         )
 
-    def perform_procedures(self) -> None:
-        """Выполняет каждую бьюти процедуру по одному разу"""
+    async def perform_procedures(self, message: Message) -> None:
+        """Выполняет каждую бьюти процедуру по одному разу с задержкой"""
         print("\033[96m\n=== Выполнение бьюти-процедур ===\n\033[0m")
 
-        profile = self.get_profile()
+        profile = await self.get_profile()
         if not profile:
             print("Не удалось получить профиль")
             return
 
-        procedure_ids = [profile.beauty_procedures[0].id, profile.beauty_procedures[1].id, profile.beauty_procedures[2].id]
+        procedure_ids = [profile.beauty_procedures[0].id, profile.beauty_procedures[1].id,
+                         profile.beauty_procedures[2].id]
 
         for procedure_id in procedure_ids:
             # Находим процедуру в списке доступных
@@ -82,12 +87,23 @@ class BeautyManager:
             if profile.can_afford_procedure(procedure.cost):
                 result = self.api.perform_beauty_procedure(procedure_id)
                 if result and result.get("success"):
-                    print(f"☑️ Успешно выполнена процедура: {procedure.title}")
+                    print(f"☑️ Успешно выполнена процедура: <b>{procedure.title}</b>")
+                    await message.edit_text(f"☑️ Успешно выполнена процедура: {procedure.title}</b>",
+                                            parse_mode=ParseMode.HTML)
                     profile.money -= procedure.cost
                 else:
                     print(f"⚠️ Не удалось выполнить процедуру: {procedure.title}")
+                    await message.edit_text(f"⚠️ Не удалось выполнить процедуру: <b>{procedure.title}</b>",
+                                            parse_mode=ParseMode.HTML)
             else:
                 print(f"⚠️ Недостаточно денег для процедуры: {procedure.title}")
+                await message.edit_text(f"⚠️ Недостаточно денег для процедуры: <b>{procedure.title}</b>",
+                                        parse_mode=ParseMode.HTML)
+
+            # Добавляем асинхронную задержку в 1 секунду между процедурами
+            await asyncio.sleep(1.3)
 
         print(f"\n- Баланс: {profile.money} 🪙")
+        await message.edit_text(f"Процедуры завершены!\n🪙 Баланс: <b>{profile.money}</b>",
+                                parse_mode=ParseMode.HTML)
         print("\033[96m\n=== Выполнение бьюти-процедур завершено ===\n\033[0m")

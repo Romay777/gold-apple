@@ -39,6 +39,7 @@ class QuestManager:
 
         return daily_quests
 
+    # Код для вывода в консольном виде
     # def print_daily_quests_status(self):
     #     """Выводит статус дневных квестов"""
     #     daily_quests = self.get_daily_quests()
@@ -80,7 +81,7 @@ class QuestManager:
         """Форматирует статус дневных квестов для вывода в Telegram"""
         daily_quests = self.get_daily_quests()
 
-        messages = ["=== Статус Дневных Задач ===\n"]
+        messages = []
 
         for status, quests in daily_quests.items():
             messages.append(f"\n{status.value.upper()} ({len(quests)} задач):")
@@ -99,14 +100,13 @@ class QuestManager:
 
     def format_rewards_collection(self) -> str:
         """Форматирует результат сбора наград для вывода в Telegram"""
-        messages = ["\n=== Сбор наград за выполненные квесты ===\n"]
+        messages = ["💰 Сбор наград за выполненные квесты \n"]
 
         quests = self.get_daily_quests()
         completed_quests = quests.get(QuestStatus.COMPLETED_UNCOLLECTED, [])
 
         if not completed_quests:
             messages.append("🎁 Все награды получены")
-            messages.append("\n=========================================")
             return "\n".join(messages)
 
         for quest in completed_quests:
@@ -116,5 +116,4 @@ class QuestManager:
             else:
                 messages.append(f"❌ Не удалось получить награду за квест '{quest.text}'")
 
-        messages.append("\n=========================================")
         return "\n".join(messages)

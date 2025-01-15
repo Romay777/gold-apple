@@ -48,13 +48,13 @@ def main(user_token: str = None):
     # # Сбор наград за выполненные ежедневные квесты
     # quest_manager.collect_rewards_for_completed_quests()
 
-def request_profile_data(user_token: str = None):
+async def request_profile_data(user_token: str = None):
     req_headers = HEADERS
     req_headers["Authorization"] = f"Bearer {user_token}"
 
     # Вывод Данных аккаунта в консоль
     api = GameAPI(BASE_URL, AUTH_PARAMS, req_headers)
     beauty_manager = BeautyManager(api)
-    return beauty_manager.get_profile()
+    return await beauty_manager.get_profile()
 
 

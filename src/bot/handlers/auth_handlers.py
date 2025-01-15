@@ -1,4 +1,5 @@
 from aiogram import Router, F
+from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
@@ -32,13 +33,14 @@ async def show_account_info(message: Message, session: AsyncSession):
         user = user.scalar_one_or_none()
 
         if user:
-            profile = request_profile_data(user.token)
+            profile = await request_profile_data(user.token)
             await message.answer(
-                f"👤 Имя: {profile.username}\n"
-                f"🌟 Рейтинг: {profile.score}\n"
-                f"⚡ Энергия: {profile.attempts}\n"
-                f"🪙 Баланс: {profile.money}",
-                reply_markup=get_start_elf_keyboard()
+            f"👤 Имя: <b>{profile.username}</b>\n"
+            f"🌟 Рейтинг: <b>{profile.score}</b>\n"
+            f"⚡ Энергия: <b>{profile.attempts}</b>\n"
+            f"🪙 Баланс: <b>{profile.money}</b>",
+                reply_markup=get_start_elf_keyboard(),
+                parse_mode=ParseMode.HTML
             )
         else:
             await message.answer("Вы не авторизованы. Пожалуйста, отправьте ваш Bearer token:")
@@ -70,14 +72,15 @@ async def process_token(message: Message, state: FSMContext, session: AsyncSessi
 
         await state.clear()
         # Get profile info using your existing API
-        profile = request_profile_data(message.text)  # You'll need to implement this
+        profile = await request_profile_data(message.text)  # You'll need to implement this
 
         await message.answer(
-            f"👤 Имя: {profile.username}\n"
-            f"🌟 Рейтинг: {profile.score}\n"
-            f"⚡ Энергия: {profile.attempts}\n"
-            f"🪙 Баланс: {profile.money}",
-            reply_markup=get_start_elf_keyboard()
+            f"👤 Имя: <b>{profile.username}</b>\n"
+            f"🌟 Рейтинг: <b>{profile.score}</b>\n"
+            f"⚡ Энергия: <b>{profile.attempts}</b>\n"
+            f"🪙 Баланс: <b>{profile.money}</b>",
+            reply_markup=get_start_elf_keyboard(),
+            parse_mode=ParseMode.HTML
         )
 
     except Exception as e:

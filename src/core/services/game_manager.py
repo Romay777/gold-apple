@@ -1,11 +1,12 @@
 import asyncio
 import random
-import time
 from typing import List, Optional
 
-from game import GameSession, Game
+from aiogram.enums import ParseMode
+from aiogram.types import Message
+
+from src.core.models.game import GameSession, Game
 from src.core.api.client import GameAPI
-from src.core.models.beauty_procedure import Profile
 
 
 class GameManager:
@@ -92,31 +93,31 @@ class GameManager:
 
     async def play_jumper(self) -> bool:
         """Играет в Jumper"""
-        return self._play_game("Jumper")
+        return await self._play_game("Jumper")
 
     async def play_match3(self) -> bool:
         """Играет в Match3"""
-        return self._play_game("Match3")
+        return await self._play_game("Match3")
 
     async def play_memories(self) -> bool:
         """Играет в Memories"""
-        return self._play_game("Memories")
+        return await self._play_game("Memories")
 
     async def play_runner(self) -> bool:
         """Играет в Runner"""
-        return self._play_game("Runner")
+        return await self._play_game("Runner")
 
 
 
-    async def auto_play_games(self):
+    async def auto_play_games(self, message: Message):
         """Автоматически играет в игры по очереди, пока есть энергия"""
         print("\033[33m=== Автоматический запуск игр ===\033[0m")
 
         game_sequence = ["Jumper", "Match3", "Runner", "Memories"]  # Список игр в порядке очередности
 
         while True:
-            games = self.get_available_games()
-            user_energy = self.get_user_energy()
+            games = await self.get_available_games()
+            user_energy = await self.get_user_energy()
 
             if user_energy < 3:
                 print(f"Недостаточно энергии: {user_energy}")
@@ -134,23 +135,15 @@ class GameManager:
                     continue
 
                 try:
-                    if game_name == "Jumper":
-                        if not self.play_jumper():
-                            print("Ошибка при запуске игры Jumper")
-                    elif game_name == "Match3":
-                        if not self.play_match3():
-                            print("Ошибка при запуске игры Match3")
-                    elif game_name == "Runner":
-                        if not self.play_runner():
-                            print("Ошибка при запуске игры Runner")
-                    elif game_name == "Memories":
-                        if not self.play_memories():
-                            print("Ошибка при запуске игры Memories")
+                    await message.edit_text(f"🎮 Играем в <b>{game_name}</b>...", parse_mode=ParseMode.HTML)
+                    play_method = getattr(self, f"play_{game_name.lower()}")
+                    if not await play_method():
+                        await message.edit_text(f"❌ Не смогли сыграть в <b>{game_name}</b>", parse_mode=ParseMode.HTML)
 
                     # Обновляем уровень энергии после игры
-                    user_energy = self.get_user_energy()
+                    user_energy = await self.get_user_energy()
                     if not user_energy:
-                        print("Энергия игрока исчерпана")
+                        await message.edit_text(f"⚡ <b>Закончилась энергия</b>", parse_mode=ParseMode.HTML)
                         break
 
                 except Exception as e:
@@ -160,6 +153,7 @@ class GameManager:
             else:
                 # Если ни одна игра не может быть запущена, завершаем цикл
                 print("Ни одна игра не была запущена. Завершаем автоматический запуск.")
+                await message.edit_text(f"🎮 <b>Сыграли во все игры</b>", parse_mode=ParseMode.HTML)
                 break
 
         print("\033[33m=== Автоматический запуск игр завершен ===\033[0m")

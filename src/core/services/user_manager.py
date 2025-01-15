@@ -1,3 +1,7 @@
+from aiogram.enums import ParseMode
+from aiogram.types import Message
+
+from src.bot.keyboards import get_start_elf_keyboard, get_back_profile_keyboard
 from src.core.api.client import UserAPI
 from src.core.models.user import User
 
@@ -12,7 +16,7 @@ class UserManager:
             username=user_data.get("username")
         )
 
-    def like_first_friend(self) -> bool:
+    async def like_first_friend(self, message: Message) -> bool:
         """Ставит лайк первому другу из списка избранных"""
         result = self.api.get_favorites()
         if not result or not result.get("success"):
@@ -29,7 +33,11 @@ class UserManager:
 
         if like_result and like_result.get("success"):
             print(f"\n\033[92mУспешно поставлен лайк пользователю {first_friend.username}\033[0m")
+            await message.edit_text(f"☑️ Успешно поставлен лайк пользователю <b>{first_friend.username}</b>",
+                                    reply_markup=get_back_profile_keyboard(), parse_mode=ParseMode.HTML)
             return True
         else:
             print(f"\n\033[91mНе удалось поставить лайк пользователю {first_friend.username}\033[0m")
+            await message.edit_text(f"❌ Не удалось поставить лайк пользователю <b>{first_friend.username}</b>",
+                                    reply_markup=get_back_profile_keyboard(), parse_mode=ParseMode.HTML)
             return False
