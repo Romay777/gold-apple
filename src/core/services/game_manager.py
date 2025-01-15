@@ -1,3 +1,4 @@
+import asyncio
 import random
 import time
 from typing import List, Optional
@@ -19,7 +20,7 @@ class GameManager:
         return profile_data.get("attempts", 0)
 
 
-    def get_user_energy(self) -> int:
+    async def get_user_energy(self) -> int:
         """Получает профиль игрока с информацией о бьюти процедурах"""
         result = self.api.get_profile()
         return self._parse_user_energy(result)
@@ -44,7 +45,7 @@ class GameManager:
             max_score=log.get("max_score", 0)
         )
 
-    def get_available_games(self) -> List[Game]:
+    async def get_available_games(self) -> List[Game]:
         """Получает список доступных игр"""
         result = self.api.get_games_list()
         if not result or not result.get("success"):
@@ -53,7 +54,7 @@ class GameManager:
         games = result.get("data", {}).get("games", [])
         return [self._parse_game(game) for game in games]
 
-    def _play_game(self, game_name: str) -> bool:
+    async def _play_game(self, game_name: str) -> bool:
         """
         Базовый метод для запуска и игры в любую игру
         :param game_name: название игры
@@ -75,7 +76,7 @@ class GameManager:
 
         # Имитируем реальную игру с задержкой
         delay = random.uniform(9, 15)
-        time.sleep(delay)
+        await asyncio.sleep(delay)
 
         # Получаем соответствующий метод для завершения конкретной игры
         end_game_method = getattr(self.api, f"end_{game_name.lower()}_game")
@@ -89,25 +90,25 @@ class GameManager:
             print(f"\033[91mНе удалось завершить игру {game_name}\033[0m")
             return False
 
-    def play_jumper(self) -> bool:
+    async def play_jumper(self) -> bool:
         """Играет в Jumper"""
         return self._play_game("Jumper")
 
-    def play_match3(self) -> bool:
+    async def play_match3(self) -> bool:
         """Играет в Match3"""
         return self._play_game("Match3")
 
-    def play_memories(self) -> bool:
+    async def play_memories(self) -> bool:
         """Играет в Memories"""
         return self._play_game("Memories")
 
-    def play_runner(self) -> bool:
+    async def play_runner(self) -> bool:
         """Играет в Runner"""
         return self._play_game("Runner")
 
 
 
-    def auto_play_games(self):
+    async def auto_play_games(self):
         """Автоматически играет в игры по очереди, пока есть энергия"""
         print("\033[33m=== Автоматический запуск игр ===\033[0m")
 
