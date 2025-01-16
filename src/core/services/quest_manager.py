@@ -79,27 +79,54 @@ class QuestManager:
 
     def format_daily_quests_status(self) -> str:
         """Форматирует статус дневных квестов для вывода в Telegram"""
+        # ВЫВОД ВСЕХ ТИПОВ ЗАДАЧ
+        # daily_quests = self.get_daily_quests()
+        #
+        # messages = []
+        #
+        # for status, quests in daily_quests.items():
+        #     messages.append(f"\n{status.value.upper()} ({len(quests)} задач):")
+        #
+        #     if not quests:
+        #         messages.append("🎉 Все награды получены")
+        #         continue
+        #
+        #     for quest in quests:
+        #         messages.append(f"— {quest.text}")
+        #         if quest.progress and status != QuestStatus.COMPLETED_COLLECTED:
+        #             messages.append(f"    · Прогресс: {quest.progress}/{quest.trigger_count}")
+        #
+        # return "\n".join(messages)
+
+        # ВЫВОД ТОЛЬКО ЗАВЕРШЕННЫХ И В ПРОЦЕССЕ
         daily_quests = self.get_daily_quests()
 
         messages = []
 
-        for status, quests in daily_quests.items():
-            messages.append(f"\n{status.value.upper()} ({len(quests)} задач):")
+        # First handle completed quests (both collected and uncollected)
+        completed_quests = []
+        completed_quests.extend(daily_quests[QuestStatus.COMPLETED_COLLECTED])
+        completed_quests.extend(daily_quests[QuestStatus.COMPLETED_UNCOLLECTED])
 
-            if not quests:
-                messages.append("🎉 Все награды получены")
-                continue
-
-            for quest in quests:
+        if completed_quests:
+            messages.append(f"\nВЫПОЛНЕНО ({len(completed_quests)} задач):")
+            for quest in completed_quests:
                 messages.append(f"— {quest.text}")
-                if quest.progress and status != QuestStatus.COMPLETED_COLLECTED:
+
+        # Then handle in progress quests
+        in_progress_quests = daily_quests[QuestStatus.IN_PROGRESS]
+        if in_progress_quests:
+            messages.append(f"\nВ ПРОЦЕССЕ ({len(in_progress_quests)} задач):")
+            for quest in in_progress_quests:
+                messages.append(f"— {quest.text}")
+                if quest.progress:
                     messages.append(f"    · Прогресс: {quest.progress}/{quest.trigger_count}")
 
         return "\n".join(messages)
 
     def format_rewards_collection(self) -> str:
         """Форматирует результат сбора наград для вывода в Telegram"""
-        messages = ["💰 Сбор наград за выполненные квесты \n"]
+        messages = []
 
         quests = self.get_daily_quests()
         completed_quests = quests.get(QuestStatus.COMPLETED_UNCOLLECTED, [])

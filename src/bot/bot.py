@@ -6,7 +6,7 @@ from database import create_db_and_tables
 from middleware.database import DatabaseMiddleware
 
 
-async def main():
+async def launch():
     # Инициализация бота и диспетчера
     bot = Bot(token="7522679120:AAG58zM0a9duB3rnCtzTmA0qnD-zoic-syE")
     storage = MemoryStorage()
@@ -27,4 +27,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(launch())

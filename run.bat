@@ -2,7 +2,10 @@
 echo Activating virtual environment...
 call .venv\Scripts\activate
 
+echo Setting PYTHONPATH...
+set PYTHONPATH=%PYTHONPATH%;%CD%
+
 echo Starting the bot...
-py main.py
+py src/bot/bot.py
 
 pause

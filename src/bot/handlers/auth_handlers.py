@@ -7,9 +7,11 @@ from aiogram.types import Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from main import request_profile_data
 from src.bot.database import User
 from src.bot.keyboards import get_start_elf_keyboard
+from src.config.constants import HEADERS, BASE_URL, AUTH_PARAMS
+from src.core.api.client import GameAPI
+from src.core.services.beauty_manager import BeautyManager
 
 router = Router()
 
@@ -31,7 +33,8 @@ async def show_account_info(message: Message, session: AsyncSession):
         user = user.scalar_one_or_none()
 
         if user:
-            profile = await request_profile_data(user.token)
+            profile = await get_profile_data(user.token)
+
             await message.answer(
                 generate_profile_message(profile),
                 reply_markup=get_start_elf_keyboard(),
@@ -66,8 +69,8 @@ async def process_token(message: Message, state: FSMContext, session: AsyncSessi
         await session.commit()
 
         await state.clear()
-        # Get profile info using your existing API
-        profile = await request_profile_data(message.text)  # You'll need to implement this
+
+        profile = await get_profile_data(message.text)
 
         await message.answer(
             generate_profile_message(profile),
@@ -83,8 +86,17 @@ async def process_token(message: Message, state: FSMContext, session: AsyncSessi
 
 def generate_profile_message(profile):
     return (
-        f"👤 Имя: {profile.username}\n"
-        f"🌟 Рейтинг: {profile.score}({profile.level}lvl)\n"
-        f"⚡ Энергия: {profile.attempts}\n"
-        f"🪙 Баланс: {profile.money}"
+        f"👤 Имя: <b>{profile.username}</b>\n"
+        f"🌟 Рейтинг: <b>{profile.score}({profile.level}lvl)</b>\n"
+        f"⚡ Энергия: <b>{profile.attempts}</b>\n"
+        f"🪙 Баланс: <b>{profile.money}</b>"
     )
+
+async def get_profile_data(user_token: str = None):
+    req_headers = HEADERS
+    req_headers["Authorization"] = f"Bearer {user_token}"
+
+    # Вывод Данных аккаунта в консоль
+    api = GameAPI(BASE_URL, AUTH_PARAMS, req_headers)
+    beauty_manager = BeautyManager(api)
+    return await beauty_manager.get_profile()

@@ -34,10 +34,10 @@ class UserManager:
         if like_result and like_result.get("success"):
             print(f"\n\033[92mУспешно поставлен лайк пользователю {first_friend.username}\033[0m")
             await message.edit_text(f"☑️ Успешно поставлен лайк пользователю <b>{first_friend.username}</b>",
-                                    reply_markup=get_back_profile_keyboard(), parse_mode=ParseMode.HTML)
+                                    parse_mode=ParseMode.HTML)
             return True
         else:
             print(f"\n\033[91mНе удалось поставить лайк пользователю {first_friend.username}\033[0m")
             await message.edit_text(f"❌ Не удалось поставить лайк пользователю <b>{first_friend.username}</b>",
-                                    reply_markup=get_back_profile_keyboard(), parse_mode=ParseMode.HTML)
+                                    parse_mode=ParseMode.HTML)
             return False

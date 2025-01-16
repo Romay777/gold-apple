@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from src.bot.database import User
 from src.bot.handlers.auth_handlers import generate_profile_message
-from src.bot.keyboards import get_start_elf_keyboard
+from src.bot.keyboards import get_start_elf_keyboard, get_back_profile_keyboard
 from src.config.constants import BASE_URL, AUTH_PARAMS, HEADERS
 from src.core.api.client import GameAPI, UserAPI, QuestAPI
 from src.core.services.beauty_manager import BeautyManager
@@ -50,7 +50,8 @@ async def get_api(callback: CallbackQuery, session, api_to_get):
 
 @router.callback_query(F.data == "start_elf_care")
 async def process_elf_care(callback: CallbackQuery, session):
-    message = await callback.message.edit_text("🧝‍♂️ Начинаю уход за вашим эльфом!\n⏳ Получаю данные...")
+    message = await callback.message.edit_text("🧝‍♂️ <b>Начинаю уход за вашим эльфом!</b>\n⏳ Получаю данные...",
+                                               parse_mode=ParseMode.HTML)
 
     game_api = await get_api(callback, session, "game")
     game_manager = GameManager(game_api)
@@ -61,7 +62,7 @@ async def process_elf_care(callback: CallbackQuery, session):
     quest_api = await get_api(callback, session, "quest")
     quest_manager = QuestManager(quest_api)
 
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.5)
 
     await message.edit_text(
         "🧝‍♂️ <b>Уход за эльфом в процессе!</b>\n\n"
@@ -70,7 +71,7 @@ async def process_elf_care(callback: CallbackQuery, session):
         parse_mode=ParseMode.HTML
     )
 
-    await asyncio.sleep(5)
+    await asyncio.sleep(3.5)
 
     # Update message for each step
     await message.edit_text(
@@ -79,7 +80,7 @@ async def process_elf_care(callback: CallbackQuery, session):
         parse_mode=ParseMode.HTML
     )
 
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.5)
 
     await game_manager.auto_play_games(message)
 
@@ -122,7 +123,7 @@ async def process_elf_care(callback: CallbackQuery, session):
         parse_mode=ParseMode.HTML
     )
 
-    await asyncio.sleep(3)
+    await asyncio.sleep(2.5)
 
     # Final profile update
     profile = await beauty_manager.get_profile()
@@ -140,6 +141,7 @@ async def perform_procedures(callback: CallbackQuery, session):
     game_api = await get_api(callback, session, "game")
     beauty_manager = BeautyManager(game_api)
     await beauty_manager.perform_procedures(message)
+    await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
 
 
 @router.callback_query(F.data == "play_games")
@@ -150,6 +152,7 @@ async def play_games(callback: CallbackQuery, session):
     game_api = await get_api(callback, session, "game")
     game_manager = GameManager(game_api)
     await game_manager.auto_play_games(message)
+    await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
 
 
 @router.callback_query(F.data == "give_like")
@@ -160,6 +163,7 @@ async def give_like(callback: CallbackQuery, session):
     user_api = await get_api(callback, session, "user")
     users_manager = UserManager(user_api)
     await users_manager.like_first_friend(callback.message)
+    await callback.message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
 
 
 @router.callback_query(F.data == "view_quests")
@@ -181,5 +185,18 @@ async def show_quests(callback: CallbackQuery, session):
     await message.edit_text(
         "📋 <b>Состояние квестов:</b>\n"
         f"{quest_manager.format_daily_quests_status()}",
+        parse_mode=ParseMode.HTML,
+        reply_markup=get_back_profile_keyboard()
+    )
+
+@router.callback_query(F.data == "back_to_profile")
+async def back_to_profile(callback: CallbackQuery, session):
+    api = await get_api(callback, session, "game")
+    beauty_manager = BeautyManager(api)
+    profile = await beauty_manager.get_profile()
+
+    await callback.message.edit_text(
+        generate_profile_message(profile),
+        reply_markup=get_start_elf_keyboard(),
         parse_mode=ParseMode.HTML
     )

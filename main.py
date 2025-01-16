@@ -7,11 +7,14 @@ from src.core.services.beauty_manager import BeautyManager
 from src.core.services.game_manager import GameManager
 from src.core.services.quest_manager import QuestManager
 from src.core.services.user_manager import UserManager
+from src.bot.bot import launch
 
 
-def main(user_token: str = None):
-    req_headers = HEADERS
-    req_headers["Authorization"] = f"Bearer {user_token}"
+async def main(user_token: str = None):
+    await asyncio.run(launch())
+
+    # req_headers = HEADERS
+    # req_headers["Authorization"] = f"Bearer {user_token}"
 
     # # Вывод Данных аккаунта в консоль
     # api = GameAPI(BASE_URL, AUTH_PARAMS, req_headers)
@@ -48,13 +51,16 @@ def main(user_token: str = None):
     # # Сбор наград за выполненные ежедневные квесты
     # quest_manager.collect_rewards_for_completed_quests()
 
-async def request_profile_data(user_token: str = None):
-    req_headers = HEADERS
-    req_headers["Authorization"] = f"Bearer {user_token}"
+# async def request_profile_data(user_token: str = None):
+#     req_headers = HEADERS
+#     req_headers["Authorization"] = f"Bearer {user_token}"
+#
+#     # Вывод Данных аккаунта в консоль
+#     api = GameAPI(BASE_URL, AUTH_PARAMS, req_headers)
+#     beauty_manager = BeautyManager(api)
+#     return await beauty_manager.get_profile()
 
-    # Вывод Данных аккаунта в консоль
-    api = GameAPI(BASE_URL, AUTH_PARAMS, req_headers)
-    beauty_manager = BeautyManager(api)
-    return await beauty_manager.get_profile()
+if __name__ == "__main__":
+    main()
 
 

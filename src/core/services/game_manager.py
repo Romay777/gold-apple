@@ -5,6 +5,7 @@ from typing import List, Optional
 from aiogram.enums import ParseMode
 from aiogram.types import Message
 
+from src.bot.keyboards import get_back_profile_keyboard
 from src.core.models.game import GameSession, Game
 from src.core.api.client import GameAPI
 
@@ -67,16 +68,18 @@ class GameManager:
         result = self.api.start_game(game_name)
         if not result or not result.get("success"):
             print(f"Не удалось начать игру {game_name}")
+            await message.edit_text(f"🎮 <b>{game_name}</b> не удалось начать!", parse_mode=ParseMode.HTML)
             return False
 
         # Парсим данные сессии
         session = self._parse_game_session(result)
         if not session:
             print("Не удалось получить данные игровой сессии")
+            await message.edit_text("❌ Не удалось получить данные игровой сессии", parse_mode=ParseMode.HTML)
             return False
 
         # Имитируем реальную игру с задержкой
-        delay = random.uniform(9, 15)
+        delay = random.uniform(7, 12)
         await asyncio.sleep(delay)
 
         # Получаем соответствующий метод для завершения конкретной игры
@@ -123,9 +126,13 @@ class GameManager:
 
             if user_energy < 3:
                 print(f"Недостаточно энергии: {user_energy}")
+                await message.edit_text(f"⚡ <b>Недостаточно энергии: {user_energy}</b>",
+                                        parse_mode=ParseMode.HTML, reply_markup=get_back_profile_keyboard())
                 break
             elif not user_energy:
                 print("Не удалось получить энергию пользователя")
+                await message.edit_text("❌ <b>Не удалось получить энергию пользователя</b>",
+                                        parse_mode=ParseMode.HTML, reply_markup=get_back_profile_keyboard())
                 break
 
 
@@ -134,6 +141,9 @@ class GameManager:
 
                 if not game or not game.is_available or user_energy < game.energy:
                     print(f"Игра {game_name} недоступна или закончилась энергия (кол-во: {user_energy})")
+                    await message.edit_text(f"❌ Игра <b>{game_name}</b> недоступна или закончилась энергия (кол-во: {user_energy})",
+                                            parse_mode=ParseMode.HTML)
+                    await asyncio.sleep(0.8)
                     continue
 
                 try:
@@ -141,12 +151,12 @@ class GameManager:
                     play_method = getattr(self, f"play_{game_name.lower()}")
                     if not await play_method(message):
                         await message.edit_text(f"❌ Не смогли сыграть в <b>{game_name}</b>", parse_mode=ParseMode.HTML)
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(0.6)
                     # Обновляем уровень энергии после игры
                     user_energy = await self.get_user_energy()
                     if not user_energy:
                         await message.edit_text(f"⚡ <b>Закончилась энергия</b>", parse_mode=ParseMode.HTML)
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(1)
                         break
 
                 except Exception as e:
@@ -156,7 +166,7 @@ class GameManager:
             else:
                 # Если ни одна игра не может быть запущена, завершаем цикл
                 print("Ни одна игра не была запущена. Завершаем автоматический запуск.")
-                await message.edit_text(f"🎮 <b>Сыграли во все игры</b>", parse_mode=ParseMode.HTML)
+                await message.edit_text(f"🎮 <b>Сыграли во все доступные игры</b>", parse_mode=ParseMode.HTML)
                 break
 
         print("\033[33m=== Автоматический запуск игр завершен ===\033[0m")

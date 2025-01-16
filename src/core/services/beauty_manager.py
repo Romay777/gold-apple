@@ -4,6 +4,7 @@ from aiogram.enums import ParseMode
 from aiogram.types import Message
 from typing import Optional
 
+from src.bot.keyboards import get_back_profile_keyboard
 from src.core.api.client import GameAPI
 from src.core.models.beauty_procedure import BeautyProcedure, Profile
 
@@ -68,6 +69,7 @@ class BeautyManager:
         profile = await self.get_profile()
         if not profile:
             print("Не удалось получить профиль")
+            await message.edit_text("Не удалось получить профиль", parse_mode=ParseMode.HTML)
             return
 
         procedure_ids = [profile.beauty_procedures[0].id, profile.beauty_procedures[1].id,
@@ -82,6 +84,7 @@ class BeautyManager:
 
             if not procedure:
                 print(f"Процедура с ID {procedure_id} не найдена")
+                await message.edit_text(f"Процедура с ID {procedure_id} не найдена", parse_mode=ParseMode.HTML)
                 continue
 
             if profile.can_afford_procedure(procedure.cost):
