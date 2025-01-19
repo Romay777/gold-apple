@@ -1,14 +1,16 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from src.core.api.client import QuestAPI
 from src.core.models.enums import QuestStatus
 from src.core.models.quest import Quest
 from src.utils.encodings import fix_encoding
+from src.utils.logger import logger, set_user_context, clear_user_context
 
 
 class QuestManager:
-    def __init__(self, api: QuestAPI):
+    def __init__(self, api: QuestAPI, user_info: Optional[dict] = None):
         self.api = api
+        self.user_info = user_info or {}
 
     @staticmethod
     def _parse_quest(quest_data: dict) -> Quest:
@@ -99,47 +101,66 @@ class QuestManager:
         # return "\n".join(messages)
 
         # ВЫВОД ТОЛЬКО ЗАВЕРШЕННЫХ И В ПРОЦЕССЕ
-        daily_quests = self.get_daily_quests()
 
-        messages = []
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
 
-        # First handle completed quests (both collected and uncollected)
-        completed_quests = []
-        completed_quests.extend(daily_quests[QuestStatus.COMPLETED_COLLECTED])
-        completed_quests.extend(daily_quests[QuestStatus.COMPLETED_UNCOLLECTED])
+        try:
+            logger.info("Вывод статуса дневных квестов")
+            daily_quests = self.get_daily_quests()
 
-        if completed_quests:
-            messages.append(f"\nВЫПОЛНЕНО ({len(completed_quests)} задач):")
-            for quest in completed_quests:
-                messages.append(f"— {quest.text}")
+            messages = []
 
-        # Then handle in progress quests
-        in_progress_quests = daily_quests[QuestStatus.IN_PROGRESS]
-        if in_progress_quests:
-            messages.append(f"\nВ ПРОЦЕССЕ ({len(in_progress_quests)} задач):")
-            for quest in in_progress_quests:
-                messages.append(f"— {quest.text}")
-                if quest.progress:
-                    messages.append(f"    · Прогресс: {quest.progress}/{quest.trigger_count}")
+            # First handle completed quests (both collected and uncollected)
+            completed_quests = []
+            completed_quests.extend(daily_quests[QuestStatus.COMPLETED_COLLECTED])
+            completed_quests.extend(daily_quests[QuestStatus.COMPLETED_UNCOLLECTED])
 
-        return "\n".join(messages)
+            if completed_quests:
+                messages.append(f"\nВЫПОЛНЕНО ({len(completed_quests)} задач):")
+                for quest in completed_quests:
+                    messages.append(f"— {quest.text}")
+
+            # Then handle in progress quests
+            in_progress_quests = daily_quests[QuestStatus.IN_PROGRESS]
+            if in_progress_quests:
+                messages.append(f"\nВ ПРОЦЕССЕ ({len(in_progress_quests)} задач):")
+                for quest in in_progress_quests:
+                    messages.append(f"— {quest.text}")
+                    if quest.progress:
+                        messages.append(f"    · Прогресс: {quest.progress}/{quest.trigger_count}")
+
+            return "\n".join(messages)
+        finally:
+            if self.user_info:
+                clear_user_context()
 
     def format_rewards_collection(self) -> str:
         """Форматирует результат сбора наград для вывода в Telegram"""
-        messages = []
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
+        try:
+            logger.info("Сбор наград за выполненные квесты")
+            messages = []
 
-        quests = self.get_daily_quests()
-        completed_quests = quests.get(QuestStatus.COMPLETED_UNCOLLECTED, [])
+            quests = self.get_daily_quests()
+            completed_quests = quests.get(QuestStatus.COMPLETED_UNCOLLECTED, [])
 
-        if not completed_quests:
-            messages.append("🎁 <b>Все награды получены</b>")
-            return "\n".join(messages)
-
-        for quest in completed_quests:
-            result = self.api.collect_quest_reward(quest.id)
-            if result and result.get("success"):
-                messages.append(f"✅ Награда за квест '{quest.text}' успешно получена")
+            if not completed_quests:
+                logger.info("Все награды получены")
+                messages.append("🎁 <b>Все награды получены</b>")
             else:
-                messages.append(f"❌ Не удалось получить награду за квест '{quest.text}'")
+                for quest in completed_quests:
+                    result = self.api.collect_quest_reward(quest.id)
+                    if result and result.get("success"):
+                        logger.info(f"Награда за квест '{quest.text}' успешно получена")
+                        messages.append(f"✅ Награда за квест '{quest.text}' успешно получена")
+                    else:
+                        logger.error(f"Не удалось получить награду за квест '{quest.text}'")
+                        messages.append(f"❌ Не удалось получить награду за квест '{quest.text}'")
+            result = "\n".join(messages)
+        finally:
+            if self.user_info:
+                clear_user_context()
+        return result
 
-        return "\n".join(messages)

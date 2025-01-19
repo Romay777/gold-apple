@@ -16,7 +16,7 @@ HEADERS = {
     'Origin': 'https://tamagotchi.goldapple.ru',
 }
 AUTH_PARAMS = {
-            'access_token': "PRFY9pV6OtdCPO_RmayGw4BiWmxCmhzN",
+            'access_token': "your_token",
             'emailSigned': 'false',
             'isWeb': 'true',
             'processingStatus': "Found",
@@ -24,5 +24,5 @@ AUTH_PARAMS = {
             'share': 'null',
             'smsSigned': 'false',
             'timestamp': int(datetime.datetime.timestamp(datetime.datetime.now())),
-            'token': "PRFY9pV6OtdCPO_RmayGw4BiWmxCmhzN",
+            'token': "your_token",
 }

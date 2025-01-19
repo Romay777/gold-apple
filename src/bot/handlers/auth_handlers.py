@@ -33,7 +33,7 @@ async def show_account_info(message: Message, session: AsyncSession):
         user = user.scalar_one_or_none()
 
         if user:
-            profile = await get_profile_data(user.token)
+            profile = await get_profile_data(user.token, message)
 
             await message.answer(
                 generate_profile_message(profile),
@@ -70,7 +70,7 @@ async def process_token(message: Message, state: FSMContext, session: AsyncSessi
 
         await state.clear()
 
-        profile = await get_profile_data(message.text)
+        profile = await get_profile_data(message.text, message)
 
         await message.answer(
             generate_profile_message(profile),
@@ -92,11 +92,16 @@ def generate_profile_message(profile):
         f"🪙 Баланс: <b>{profile.money}</b>"
     )
 
-async def get_profile_data(user_token: str = None):
+async def get_profile_data(user_token: str = None, message: Message = None):
     req_headers = HEADERS
     req_headers["Authorization"] = f"Bearer {user_token}"
 
+    user_info = {
+        'id': message.from_user.id,
+        'username': message.from_user.username
+    }
+
     # Вывод Данных аккаунта в консоль
     api = GameAPI(BASE_URL, AUTH_PARAMS, req_headers)
-    beauty_manager = BeautyManager(api)
+    beauty_manager = BeautyManager(api, user_info)
     return await beauty_manager.get_profile()

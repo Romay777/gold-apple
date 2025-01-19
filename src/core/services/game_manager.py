@@ -8,11 +8,13 @@ from aiogram.types import Message
 from src.bot.keyboards import get_back_profile_keyboard
 from src.core.models.game import GameSession, Game
 from src.core.api.client import GameAPI
+from src.utils.logger import set_user_context, logger, clear_user_context
 
 
 class GameManager:
-    def __init__(self, api: GameAPI):
+    def __init__(self, api: GameAPI, user_info: Optional[dict] = None):
         self.api = api
+        self.user_info = user_info or {}
 
     def _parse_user_energy(self, data: dict) -> int:
         if not data or not data.get("success"):
@@ -62,39 +64,46 @@ class GameManager:
         :param game_name: название игры
         :return: bool - успешность выполнения
         """
-        print(f"\033[33m     Начинаем игру {game_name}\033[0m")
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
 
-        # Начинаем игру
-        result = self.api.start_game(game_name)
-        if not result or not result.get("success"):
-            print(f"Не удалось начать игру {game_name}")
-            await message.edit_text(f"🎮 <b>{game_name}</b> не удалось начать!", parse_mode=ParseMode.HTML)
-            return False
+        try:
+            logger.info(f"Начинаем игру {game_name}")
 
-        # Парсим данные сессии
-        session = self._parse_game_session(result)
-        if not session:
-            print("Не удалось получить данные игровой сессии")
-            await message.edit_text("❌ Не удалось получить данные игровой сессии", parse_mode=ParseMode.HTML)
-            return False
+            # Начинаем игру
+            result = self.api.start_game(game_name)
+            if not result or not result.get("success"):
+                logger.error(f"Не удалось начать игру {game_name}")
+                await message.edit_text(f"🎮 <b>{game_name}</b> не удалось начать!", parse_mode=ParseMode.HTML)
+                return False
 
-        # Имитируем реальную игру с задержкой
-        delay = random.uniform(7, 12)
-        await asyncio.sleep(delay)
+            # Парсим данные сессии
+            session = self._parse_game_session(result)
+            if not session:
+                logger.error("Не удалось получить данные игровой сессии")
+                await message.edit_text("❌ Не удалось получить данные игровой сессии", parse_mode=ParseMode.HTML)
+                return False
 
-        # Получаем соответствующий метод для завершения конкретной игры
-        end_game_method = getattr(self.api, f"end_{game_name.lower()}_game")
+            # Имитируем реальную игру с задержкой
+            delay = random.uniform(7, 12)
+            await asyncio.sleep(delay)
 
-        # Завершаем игру
-        end_result = end_game_method(session.max_score)
-        if end_result and end_result.get("success"):
-            print(f"\033[97mУспешно завершена игра {game_name} со счетом {session.max_score}\033[0m")
-            await message.edit_text(f"🎮 <b>{game_name}</b> успешно завершена! Счет: {session.max_score}", parse_mode=ParseMode.HTML)
-            return True
-        else:
-            print(f"\033[91mНе удалось завершить игру {game_name}\033[0m")
-            await message.edit_text(f"🎮 <b>{game_name}</b> не удалось завершить!", parse_mode=ParseMode.HTML)
-            return False
+            # Получаем соответствующий метод для завершения конкретной игры
+            end_game_method = getattr(self.api, f"end_{game_name.lower()}_game")
+
+            # Завершаем игру
+            end_result = end_game_method(session.max_score)
+            if end_result and end_result.get("success"):
+                logger.info(f"Игра {game_name} завершена со счетом {session.max_score}")
+                await message.edit_text(f"🎮 <b>{game_name}</b> успешно завершена! Счет: {session.max_score}", parse_mode=ParseMode.HTML)
+                return True
+            else:
+                logger.error(f"Не удалось завершить игру {game_name}")
+                await message.edit_text(f"🎮 <b>{game_name}</b> не удалось завершить!", parse_mode=ParseMode.HTML)
+                return False
+        finally:
+            if self.user_info:
+                clear_user_context()
 
     async def play_jumper(self, message: Message) -> bool:
         """Играет в Jumper"""
@@ -116,58 +125,63 @@ class GameManager:
 
     async def auto_play_games(self, message: Message):
         """Автоматически играет в игры по очереди, пока есть энергия"""
-        print("\033[33m=== Автоматический запуск игр ===\033[0m")
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
+        try:
+            logger.debug("=== Автоматический запуск игр ===")
 
-        game_sequence = ["Jumper", "Match3", "Runner", "Memories"]  # Список игр в порядке очередности
+            game_sequence = ["Jumper", "Match3", "Runner", "Memories"]  # Список игр в порядке очередности
 
-        while True:
-            games = await self.get_available_games()
-            user_energy = await self.get_user_energy()
+            while True:
+                games = await self.get_available_games()
+                user_energy = await self.get_user_energy()
 
-            if user_energy < 3:
-                print(f"Недостаточно энергии: {user_energy}")
-                await message.edit_text(f"⚡ <b>Недостаточно энергии: {user_energy}</b>",
-                                        parse_mode=ParseMode.HTML, reply_markup=get_back_profile_keyboard())
-                break
-            elif not user_energy:
-                print("Не удалось получить энергию пользователя")
-                await message.edit_text("❌ <b>Не удалось получить энергию пользователя</b>",
-                                        parse_mode=ParseMode.HTML, reply_markup=get_back_profile_keyboard())
-                break
-
-
-            for game_name in game_sequence:
-                game = next((g for g in games if g.name == game_name), None)
-
-                if not game or not game.is_available or user_energy < game.energy:
-                    print(f"Игра {game_name} недоступна или закончилась энергия (кол-во: {user_energy})")
-                    await message.edit_text(f"❌ Игра <b>{game_name}</b> недоступна или закончилась энергия (кол-во: {user_energy})",
+                if user_energy < 3:
+                    logger.info(f"Недостаточно энергии: {user_energy}")
+                    await message.edit_text(f"⚡ <b>Недостаточно энергии: {user_energy}</b>",
                                             parse_mode=ParseMode.HTML)
-                    await asyncio.sleep(0.8)
-                    continue
-
-                try:
-                    await message.edit_text(f"🎮 Играем в <b>{game_name}</b>...", parse_mode=ParseMode.HTML)
-                    play_method = getattr(self, f"play_{game_name.lower()}")
-                    if not await play_method(message):
-                        await message.edit_text(f"❌ Не смогли сыграть в <b>{game_name}</b>", parse_mode=ParseMode.HTML)
-                    await asyncio.sleep(0.6)
-                    # Обновляем уровень энергии после игры
-                    user_energy = await self.get_user_energy()
-                    if not user_energy:
-                        await message.edit_text(f"⚡ <b>Закончилась энергия</b>", parse_mode=ParseMode.HTML)
-                        await asyncio.sleep(1)
-                        break
-
-                except Exception as e:
-                    print(f"Ошибка при выполнении {game_name}: {e}")
+                    break
+                elif not user_energy:
+                    logger.error("Не удалось получить энергию пользователя")
+                    await message.edit_text("❌ <b>Не удалось получить энергию пользователя</b>",
+                                            parse_mode=ParseMode.HTML)
                     break
 
-            else:
-                # Если ни одна игра не может быть запущена, завершаем цикл
-                print("Ни одна игра не была запущена. Завершаем автоматический запуск.")
-                await message.edit_text(f"🎮 <b>Сыграли во все доступные игры</b>", parse_mode=ParseMode.HTML)
-                break
 
-        print("\033[33m=== Автоматический запуск игр завершен ===\033[0m")
+                for game_name in game_sequence:
+                    game = next((g for g in games if g.name == game_name), None)
+
+                    if not game or not game.is_available or user_energy < game.energy:
+                        logger.info(f"Игра {game_name} недоступна или закончилась энергия (кол-во: {user_energy})")
+                        await message.edit_text(f"❌ Игра <b>{game_name}</b> недоступна или закончилась энергия (кол-во: {user_energy})",
+                                                parse_mode=ParseMode.HTML)
+                        await asyncio.sleep(0.8)
+                        continue
+
+                    try:
+                        await message.edit_text(f"🎮 Играем в <b>{game_name}</b>...", parse_mode=ParseMode.HTML)
+                        play_method = getattr(self, f"play_{game_name.lower()}")
+                        if not await play_method(message):
+                            await message.edit_text(f"❌ Не смогли сыграть в <b>{game_name}</b>", parse_mode=ParseMode.HTML)
+                        await asyncio.sleep(0.6)
+                        # Обновляем уровень энергии после игры
+                        user_energy = await self.get_user_energy()
+                        if not user_energy:
+                            await message.edit_text(f"⚡ <b>Закончилась энергия</b>", parse_mode=ParseMode.HTML)
+                            await asyncio.sleep(1)
+                            break
+
+                    except Exception as e:
+                        logger.error(f"Ошибка при выполнении {game_name}: {e}")
+                        break
+
+                else:
+                    # Если ни одна игра не может быть запущена, завершаем цикл
+                    logger.info("Ни одна игра не была запущена. Завершаем автоматический запуск.")
+                    await message.edit_text(f"🎮 <b>Сыграли во все доступные игры</b>", parse_mode=ParseMode.HTML)
+                    break
+        finally:
+            if self.user_info:
+                clear_user_context()
+            logger.debug("=== Автоматический запуск игр завершен ===")
 

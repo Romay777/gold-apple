@@ -4,6 +4,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from handlers import auth_handlers, game_handlers
 from database import create_db_and_tables
 from middleware.database import DatabaseMiddleware
+from src.utils.logger import logger
 
 
 async def launch():
@@ -23,7 +24,9 @@ async def launch():
     dp.include_router(game_handlers.router)
 
     # Запуск бота
+    logger.info("Бот запущен")
     await dp.start_polling(bot)
+
 
 
 if __name__ == "__main__":

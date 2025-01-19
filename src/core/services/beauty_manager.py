@@ -7,11 +7,13 @@ from typing import Optional
 from src.bot.keyboards import get_back_profile_keyboard
 from src.core.api.client import GameAPI
 from src.core.models.beauty_procedure import BeautyProcedure, Profile
+from src.utils.logger import logger, set_user_context, clear_user_context
 
 
 class BeautyManager:
-    def __init__(self, api: GameAPI):
+    def __init__(self, api: GameAPI, user_info: Optional[dict] = None):
         self.api = api
+        self.user_info = user_info or {}
 
     def _parse_profile(self, data: dict) -> Optional[Profile]:
         if not data or not data.get("success"):
@@ -44,6 +46,9 @@ class BeautyManager:
 
     async def get_profile(self) -> Optional[Profile]:
         """Получает профиль игрока с информацией о бьюти процедурах"""
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
+        logger.info("Получение профиля игрока")
         result = self.api.get_profile()
         return self._parse_profile(result)
 
@@ -64,49 +69,55 @@ class BeautyManager:
 
     async def perform_procedures(self, message: Message) -> None:
         """Выполняет каждую бьюти процедуру по одному разу с задержкой"""
-        print("\033[96m\n=== Выполнение бьюти-процедур ===\n\033[0m")
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
 
-        profile = await self.get_profile()
-        if not profile:
-            print("Не удалось получить профиль")
-            await message.edit_text("Не удалось получить профиль", parse_mode=ParseMode.HTML)
-            return
+        try:
+            logger.debug("Выполнение бьюти-процедур")
+            profile = await self.get_profile()
+            if not profile:
+                logger.error("Не удалось получить профиль")
+                await message.edit_text("Не удалось получить профиль", parse_mode=ParseMode.HTML)
+                return
 
-        procedure_ids = [profile.beauty_procedures[0].id, profile.beauty_procedures[1].id,
-                         profile.beauty_procedures[2].id]
+            procedure_ids = [profile.beauty_procedures[-3].id, profile.beauty_procedures[-2].id,
+                             profile.beauty_procedures[-1].id]
 
-        for procedure_id in procedure_ids:
-            # Находим процедуру в списке доступных
-            procedure = next(
-                (p for p in profile.beauty_procedures if p.id == procedure_id),
-                None
-            )
+            for procedure_id in procedure_ids:
+                # Находим процедуру в списке доступных
+                procedure = next(
+                    (p for p in profile.beauty_procedures if p.id == procedure_id),
+                    None
+                )
 
-            if not procedure:
-                print(f"Процедура с ID {procedure_id} не найдена")
-                await message.edit_text(f"Процедура с ID {procedure_id} не найдена", parse_mode=ParseMode.HTML)
-                continue
+                if not procedure:
+                    logger.error(f"Процедура с ID {procedure_id} не найдена")
+                    await message.edit_text(f"Процедура с ID {procedure_id} не найдена", parse_mode=ParseMode.HTML)
+                    continue
 
-            if profile.can_afford_procedure(procedure.cost):
-                result = self.api.perform_beauty_procedure(procedure_id)
-                if result and result.get("success"):
-                    print(f"☑️ Успешно выполнена процедура: <b>{procedure.title}</b>")
-                    await message.edit_text(f"☑️ Успешно выполнена процедура: <b>{procedure.title}</b>",
-                                            parse_mode=ParseMode.HTML)
-                    profile.money -= procedure.cost
+                if profile.can_afford_procedure(procedure.cost):
+                    result = self.api.perform_beauty_procedure(procedure_id)
+                    if result and result.get("success"):
+                        logger.info(f"Успешно выполнена процедура: {procedure.title}")
+                        await message.edit_text(f"☑️ Успешно выполнена процедура: <b>{procedure.title}</b>",
+                                                parse_mode=ParseMode.HTML)
+                        profile.money -= procedure.cost
+                    else:
+                        logger.error(f"Не удалось выполнить процедуру: {procedure.title}")
+                        await message.edit_text(f"⚠️ Не удалось выполнить процедуру: <b>{procedure.title}</b>",
+                                                parse_mode=ParseMode.HTML)
                 else:
-                    print(f"⚠️ Не удалось выполнить процедуру: {procedure.title}")
-                    await message.edit_text(f"⚠️ Не удалось выполнить процедуру: <b>{procedure.title}</b>",
+                    logger.info(f"Недостаточно денег для процедуры: {procedure.title}")
+                    await message.edit_text(f"⚠️ Недостаточно денег для процедуры: <b>{procedure.title}</b>",
                                             parse_mode=ParseMode.HTML)
-            else:
-                print(f"⚠️ Недостаточно денег для процедуры: {procedure.title}")
-                await message.edit_text(f"⚠️ Недостаточно денег для процедуры: <b>{procedure.title}</b>",
-                                        parse_mode=ParseMode.HTML)
 
-            # Добавляем асинхронную задержку в 1 секунду между процедурами
-            await asyncio.sleep(1.3)
+                # Добавляем асинхронную задержку в 1 секунду между процедурами
+                await asyncio.sleep(1.3)
 
-        print(f"\n- Баланс: {profile.money} 🪙")
-        await message.edit_text(f"Процедуры завершены!\n🪙 Баланс: <b>{profile.money}</b>",
-                                parse_mode=ParseMode.HTML)
-        print("\033[96m\n=== Выполнение бьюти-процедур завершено ===\n\033[0m")
+            logger.info("Баланс: %s 🪙", profile.money)
+            await message.edit_text(f"Процедуры завершены!\n🪙 Баланс: <b>{profile.money}</b>",
+                                    parse_mode=ParseMode.HTML)
+        finally:
+            if self.user_info:
+                clear_user_context()
+            logger.debug("Выполнение бьюти-процедур завершено")

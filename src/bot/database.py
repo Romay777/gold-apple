@@ -19,7 +19,7 @@ class User(Base):
 SQLALCHEMY_DATABASE_URL = "postgresql+asyncpg://postgres:Ggwpggwp123@localhost/tamagotchi"
 
 # Создание движка
-engine = create_async_engine(SQLALCHEMY_DATABASE_URL, echo=True)
+engine = create_async_engine(SQLALCHEMY_DATABASE_URL, echo=False)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 async def create_db_and_tables():
