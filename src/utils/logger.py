@@ -2,6 +2,7 @@ import logging
 import sys
 from typing import Optional
 from contextvars import ContextVar
+from datetime import datetime
 
 # Context variables to store user information
 current_user_id: ContextVar[Optional[int]] = ContextVar('current_user_id', default=None)
@@ -9,7 +10,7 @@ current_username: ContextVar[Optional[str]] = ContextVar('current_username', def
 
 
 class TelegramUserFormatter(logging.Formatter):
-    """Custom formatter that includes Telegram user information in log messages"""
+    """Custom formatter that includes Telegram user information and timestamp in log messages"""
     COLORS = {
         'DEBUG': '\033[94m',  # Blue
         'INFO': '\033[92m',  # Green
@@ -20,6 +21,9 @@ class TelegramUserFormatter(logging.Formatter):
     }
 
     def format(self, record):
+        # Get current timestamp
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
         # Get user information from context
         try:
             user_id = current_user_id.get()
@@ -30,7 +34,7 @@ class TelegramUserFormatter(logging.Formatter):
 
         # Add color to the message
         color = self.COLORS.get(record.levelname, self.COLORS['RESET'])
-        record.msg = f"{color}{user_info}{record.msg}{self.COLORS['RESET']}"
+        record.msg = f"{color}[{timestamp}] {user_info}{record.msg}{self.COLORS['RESET']}"
         return super().format(record)
 
 
