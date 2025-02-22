@@ -33,7 +33,7 @@ class BaseAPI:
             print(f"Request error: {e}")
             if hasattr(e, 'response') and hasattr(e.response, 'text'):
                 print(f"Server response: {e.response.text}")
-            return None
+            return response.json()
 
 
 class QuestAPI(BaseAPI):
@@ -58,8 +58,14 @@ class GameAPI(BaseAPI):
         Returns:
             Optional[dict] - ответ от сервера
         """
-        params = {**self.auth_params, "id": procedure_id}
-        return self._make_request(GameEndpoints.BEAUTY_PROCEDURE, method="POST", params=params)
+        params = {**self.auth_params}
+        data = {"id": procedure_id}
+        return self._make_request(GameEndpoints.BEAUTY_PROCEDURE, method="POST", params=params, data=data)
+
+    def end_beauty_procedure(self, procedure_id: int, c_count: int) -> Optional[dict]:
+        params = {**self.auth_params}
+        data = {"id": procedure_id, "correct_count": c_count}
+        return self._make_request(GameEndpoints.BEAUTY_PROCEDURE_END, method="POST", params=params, data=data)
 
     def get_profile(self) -> Optional[dict]:
         """
@@ -68,6 +74,14 @@ class GameAPI(BaseAPI):
             Optional[dict] - ответ от сервера
         """
         return self._make_request(GameEndpoints.PROFILE, method="POST", params=AUTH_PARAMS)
+
+    def get_user_rating(self) -> Optional[dict]:
+        """
+        Получает рейтинг игрока.
+        Returns:
+            Optional[dict] - ответ от сервера
+        """
+        return self._make_request(GameEndpoints.USER_RATING, method="POST", params=AUTH_PARAMS)
 
     def get_games_list(self) -> Optional[dict]:
         """
@@ -88,7 +102,16 @@ class GameAPI(BaseAPI):
         data = {"type": game_type}
         return self._make_request(GameEndpoints.GAME_START, method="POST", data=data)
 
-    def _end_game(self, score: int, additional_data: dict = None) -> Optional[dict]:
+    def open_standard_box(self):
+        """Открывает обычный бокс за 300 монет"""
+        data = {"id": 2}
+        return self._make_request(GameEndpoints.OPEN_BOX, method="POST", data=data)
+
+    def get_limit(self):
+        """Сколько еще можно открыть боксов сегодня"""
+        return self._make_request(GameEndpoints.OPEN_BOX_LIST, method="GET")
+
+    def _end_game(self, score: int, money: int = 0, additional_data: dict = None) -> Optional[dict]:
         """
         Базовый метод для завершения игры.
         Args:
@@ -99,7 +122,8 @@ class GameAPI(BaseAPI):
         """
         data = {
             "is_win": 1,
-            "score": score
+            "score": score,
+            "money": money
         }
 
         if additional_data:
@@ -107,8 +131,15 @@ class GameAPI(BaseAPI):
 
         return self._make_request(GameEndpoints.GAME_END, method="POST", data=data)
 
-    def end_jumper_game(self, score: int) -> Optional[dict]:
-        return self._end_game(score)
+    def end_jumper_game(self, score: int, money: int) -> Optional[dict]:
+        # return self._end_game(score, money)
+        data = {
+            "is_win": 1,
+            "score": score,
+            "money": money
+        }
+
+        return self._make_request(GameEndpoints.GAME_END, method="POST", data=data)
 
     def end_match3_game(self, score: int) -> Optional[dict]:
         additional_data = {

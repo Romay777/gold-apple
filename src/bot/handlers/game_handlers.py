@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from src.bot.database import User
 from src.bot.handlers.auth_handlers import generate_profile_message
-from src.bot.keyboards import get_start_elf_keyboard, get_back_profile_keyboard
+from src.bot.keyboards import get_start_elf_keyboard, get_back_profile_keyboard, get_games_keyboard
 from src.config.constants import BASE_URL, AUTH_PARAMS, HEADERS
 from src.core.api.client import GameAPI, UserAPI, QuestAPI
 from src.core.services.beauty_manager import BeautyManager
@@ -47,6 +47,10 @@ async def get_api(callback: CallbackQuery, session, api_to_get):
         api = QuestAPI(BASE_URL, ap, {"Authorization": f"Bearer {user_token}"})
 
     return api
+
+@router.callback_query(F.data == "play_games")
+async def show_available_games(callback: CallbackQuery):
+    await callback.message.edit_reply_markup(reply_markup=get_games_keyboard())
 
 @router.callback_query(F.data == "start_elf_care")
 async def process_elf_care(callback: CallbackQuery, session):
@@ -145,7 +149,7 @@ async def process_elf_care(callback: CallbackQuery, session):
             parse_mode=ParseMode.HTML
     )
 
-@router.callback_query(F.data == "perform_3_procedures")
+@router.callback_query(F.data == "perform_procedures")
 async def perform_procedures(callback: CallbackQuery, session):
     message = await callback.message.edit_text("🧝‍♂️ <b>Выполняем процедуры!</b>\n⏳ Получаю данные...",
                                                parse_mode=ParseMode.HTML)
@@ -160,8 +164,24 @@ async def perform_procedures(callback: CallbackQuery, session):
     await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
 
 
-@router.callback_query(F.data == "play_games")
-async def play_games(callback: CallbackQuery, session):
+# TODO adapt for minigames
+# @router.callback_query(F.data == "play_games")
+# async def play_games(callback: CallbackQuery, session):
+#     message = await callback.message.edit_text("🧝‍♂️ <b>Начинаю играть!</b>\n⏳ Получаю данные...",
+#                                                parse_mode=ParseMode.HTML)
+#     user_info = {
+#         'id': callback.from_user.id,
+#         'username': callback.from_user.username
+#     }
+#
+#     game_api = await get_api(callback, session, "game")
+#     game_manager = GameManager(game_api, user_info)
+#     await game_manager.auto_play_games(message)
+#     await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
+
+
+@router.callback_query(F.data == "play_jumper")
+async def play_jumper(callback: CallbackQuery, session):
     message = await callback.message.edit_text("🧝‍♂️ <b>Начинаю играть!</b>\n⏳ Получаю данные...",
                                                parse_mode=ParseMode.HTML)
     user_info = {
@@ -171,23 +191,53 @@ async def play_games(callback: CallbackQuery, session):
 
     game_api = await get_api(callback, session, "game")
     game_manager = GameManager(game_api, user_info)
-    await game_manager.auto_play_games(message)
+    await game_manager.play_jumper(message)
     await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
 
+# @router.callback_query(F.data == "give_like")
+# async def give_like(callback: CallbackQuery, session):
+#     await callback.message.edit_text("🧝‍♂️ <b>Ставлю лайк!</b>\n⏳ Получаю данные...",
+#                                      parse_mode=ParseMode.HTML)
+#     user_info = {
+#         'id': callback.from_user.id,
+#         'username': callback.from_user.username
+#     }
+#
+#     user_api = await get_api(callback, session, "user")
+#     users_manager = UserManager(user_api, user_info)
+#     await users_manager.like_first_friend(callback.message)
+#     await callback.message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
 
-@router.callback_query(F.data == "give_like")
-async def give_like(callback: CallbackQuery, session):
-    await callback.message.edit_text("🧝‍♂️ <b>Ставлю лайк!</b>\n⏳ Получаю данные...",
-                                     parse_mode=ParseMode.HTML)
+
+@router.callback_query(F.data == "open_box")
+async def open_box(callback: CallbackQuery, session):
+    message = await callback.message.edit_text("🧝‍♂️ <b>Открываю ящик!</b>\n⏳ Получаю данные...",
+                                               parse_mode=ParseMode.HTML)
     user_info = {
         'id': callback.from_user.id,
         'username': callback.from_user.username
     }
 
-    user_api = await get_api(callback, session, "user")
-    users_manager = UserManager(user_api, user_info)
-    await users_manager.like_first_friend(callback.message)
-    await callback.message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
+    game_api = await get_api(callback, session, "game")
+    game_manager = GameManager(game_api, user_info)
+    # drop = await game_manager.open_box(message)
+    await game_manager.open_box(message)
+
+    # msg = f"Выпало: <b>{drop.title}</b>\n"
+    # msg += f"Получено энергии: {drop.attempts}\n" if drop.attempts != 0 else ""
+    # msg += f"Получено монет: {drop.money}\n" if drop.money != 0 else ""
+    # msg += f"Получено опыта: {drop.score}\n" if drop.score != 0 else ""
+    #
+    # # TODO get limit from list
+    # msg += f"Можно открыть боксов сегодня: <b>{await game_manager.get_limit(message)}</b>"
+    #
+    # await message.edit_text(
+    #     f"{msg}",
+    #     parse_mode=ParseMode.HTML
+    # )
+
+    await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
+
 
 
 @router.callback_query(F.data == "view_quests")
@@ -227,9 +277,10 @@ async def back_to_profile(callback: CallbackQuery, session):
     api = await get_api(callback, session, "game")
     beauty_manager = BeautyManager(api, user_info)
     profile = await beauty_manager.get_profile()
+    user_rating = await beauty_manager.get_user_rating()
 
     await callback.message.edit_text(
-        generate_profile_message(profile),
+        generate_profile_message(profile, user_rating),
         reply_markup=get_start_elf_keyboard(),
         parse_mode=ParseMode.HTML
     )

@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 from aiogram.enums import ParseMode
 from aiogram.types import Message
@@ -6,7 +7,7 @@ from typing import Optional
 
 from src.bot.keyboards import get_back_profile_keyboard
 from src.core.api.client import GameAPI
-from src.core.models.beauty_procedure import BeautyProcedure, Profile
+from src.core.models.beauty_procedure import BeautyProcedure, Profile, UserRating
 from src.utils.logger import logger, set_user_context, clear_user_context
 
 
@@ -27,21 +28,33 @@ class BeautyManager:
             level=profile_data.get("level", 1),
             attempts_cooldown=profile_data.get("attemptsCooldown", 0),
             attempts_restored_at=profile_data.get("attemptsRestoredAt", 0),
-            beauty_procedures=[
-                BeautyProcedure(
-                    id=proc.get("id"),
-                    title=proc.get("title"),
-                    action=proc.get("action"),
-                    cost=proc.get("cost"),
-                    score=proc.get("score"),
-                    multiplier=proc.get("multiplier"),
-                    multiplier_user_money=proc.get("multiplierUserMoney"),
-                    is_new=proc.get("isNew"),
-                    description=proc.get("description")
-                )
-                for proc in profile_data.get("beautyProcedures", [])
-            ],
+            # --- OUTDATED ---
+            # beauty_procedures=[
+            #     BeautyProcedure(
+            #         id=proc.get("id"),
+            #         title=proc.get("title"),
+            #         action=proc.get("action"),
+            #         cost=proc.get("cost"),
+            #         score=proc.get("score"),
+            #         multiplier=proc.get("multiplier"),
+            #         multiplier_user_money=proc.get("multiplierUserMoney"),
+            #         is_new=proc.get("isNew"),
+            #         description=proc.get("description")
+            #     )
+            #     for proc in profile_data.get("beautyProcedures", [])
+            # ],
+            beauty_procedures=[],
             username=profile_data.get("username"),
+        )
+
+    def _parse_user_rating(self, data: dict) -> Optional[UserRating]:
+        if not data or not data.get("success"):
+            return None
+
+        user_rating_data = data.get("data", {}).get("user", {})
+        return UserRating(
+            score=user_rating_data.get("score", 0),
+            position=user_rating_data.get("position", 0)
         )
 
     async def get_profile(self) -> Optional[Profile]:
@@ -51,6 +64,14 @@ class BeautyManager:
         logger.info("Получение профиля игрока")
         result = self.api.get_profile()
         return self._parse_profile(result)
+
+    async def get_user_rating(self) -> Optional[UserRating]:
+        """Получает рейтинг игрока"""
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
+        logger.info("Получение рейтинга игрока")
+        result = self.api.get_user_rating()
+        return self._parse_user_rating(result)
 
     async def print_profile_normalized(self) -> None:
         profile = await self.get_profile()
@@ -80,43 +101,42 @@ class BeautyManager:
                 await message.edit_text("Не удалось получить профиль", parse_mode=ParseMode.HTML)
                 return
 
-            procedure_ids = [profile.beauty_procedures[-3].id, profile.beauty_procedures[-2].id,
-                             profile.beauty_procedures[-1].id]
+            if profile.money < 250:
+                logger.error("Недостаточно денег")
+                await message.edit_text("🚫 <b>Недостаточно денег</b>", parse_mode=ParseMode.HTML)
+                return
 
-            for procedure_id in procedure_ids:
-                # Находим процедуру в списке доступных
-                procedure = next(
-                    (p for p in profile.beauty_procedures if p.id == procedure_id),
-                    None
-                )
-
-                if not procedure:
-                    logger.error(f"Процедура с ID {procedure_id} не найдена")
-                    await message.edit_text(f"Процедура с ID {procedure_id} не найдена", parse_mode=ParseMode.HTML)
-                    continue
-
-                if profile.can_afford_procedure(procedure.cost):
-                    result = self.api.perform_beauty_procedure(procedure_id)
-                    if result and result.get("success"):
-                        logger.info(f"Успешно выполнена процедура: {procedure.title}")
-                        await message.edit_text(f"☑️ Успешно выполнена процедура: <b>{procedure.title}</b>",
-                                                parse_mode=ParseMode.HTML)
-                        profile.money -= procedure.cost
-                    else:
-                        logger.error(f"Не удалось выполнить процедуру: {procedure.title}")
-                        await message.edit_text(f"⚠️ Не удалось выполнить процедуру: <b>{procedure.title}</b>",
-                                                parse_mode=ParseMode.HTML)
-                else:
-                    logger.info(f"Недостаточно денег для процедуры: {procedure.title}")
-                    await message.edit_text(f"⚠️ Недостаточно денег для процедуры: <b>{procedure.title}</b>",
+            result = self.api.perform_beauty_procedure(1)
+            if result and result.get("success"):
+                logger.info(f"Успешно запущены процедуры")
+                await message.edit_text(f"☑️ <b>Успешно запущены процедуры!</b>",
+                                        parse_mode=ParseMode.HTML)
+            else:
+                reason = result.get("data", {}).get("name", "Неизвестная причина")
+                if reason == "You have reached the day limit of this routine":
+                    logger.debug(f"Не удалось начать процедуры", "Причина: Процедуры уже выполнены", )
+                    await message.edit_text(f"⚠️ <b>Не удалось начать процедуры</b>\n"
+                                            f"Причина: <b>Процедуры уже выполнены</b>\f",
                                             parse_mode=ParseMode.HTML)
+                else:
+                    logger.warning(f"Не удалось начать процедуры", "Причина: ", reason)
+                    await message.edit_text(f"⚠️ <b>Не удалось начать процедуры</b>\n"
+                                            f"Причина: <b>{reason}</b>\f",
+                                            parse_mode=ParseMode.HTML)
+                return
 
-                # Добавляем асинхронную задержку в 1 секунду между процедурами
-                await asyncio.sleep(1.3)
+            await asyncio.sleep(random.randint(2, 4))
+            result = self.api.end_beauty_procedure(1, 4)
+            if result and result.get("success"):
+                logger.info(f"Успешно завершены процедуры", "Баланс: %s 🪙", profile.money-250)
+                await message.edit_text(f"Процедуры завершены!\n🪙 Баланс: <b>{profile.money - 250}</b>",
+                                        parse_mode=ParseMode.HTML)
+            else:
+                logger.error(f"Не удалось завершить процедуры")
+                await message.edit_text(f"⚠️ <b>Не удалось завершить процедуры</b>",
+                                        parse_mode=ParseMode.HTML)
+                return
 
-            logger.info("Баланс: %s 🪙", profile.money)
-            await message.edit_text(f"Процедуры завершены!\n🪙 Баланс: <b>{profile.money}</b>",
-                                    parse_mode=ParseMode.HTML)
         finally:
             if self.user_info:
                 clear_user_context()

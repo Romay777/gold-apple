@@ -24,6 +24,10 @@ class Profile:
     beauty_procedures: list[BeautyProcedure]
     username: str
 
+@dataclass
+class UserRating:
+    score: int
+    position: int
 
     def can_afford_procedure(self, procedure_cost: int) -> bool:
         return self.money >= procedure_cost

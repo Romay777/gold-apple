@@ -11,3 +11,11 @@ class Game:
 class GameSession:
    game_type: str
    max_score: int
+
+@dataclass
+class Drop:
+   title: str
+   attempts: int # если энергия
+   money: int # если деньги
+   score: int # если exp
+

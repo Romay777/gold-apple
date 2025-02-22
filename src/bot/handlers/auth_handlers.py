@@ -27,23 +27,24 @@ async def cmd_start(message: Message, state: FSMContext):
 
 @router.message(Command("me"))
 async def show_account_info(message: Message, session: AsyncSession):
-    try:
+    # try:
         query = select(User).where(User.tg_user_id == message.from_user.id)
         user = await session.execute(query)
         user = user.scalar_one_or_none()
 
         if user:
             profile = await get_profile_data(user.token, message)
+            user_rating = await get_user_rating_data(user.token, message)
 
             await message.answer(
-                generate_profile_message(profile),
+                generate_profile_message(profile, user_rating),
                 reply_markup=get_start_elf_keyboard(),
                 parse_mode=ParseMode.HTML
             )
         else:
             await message.answer("Вы не авторизованы. Пожалуйста, отправьте ваш Bearer token:")
-    except Exception:
-        await message.answer("Произошла ошибка при получении информации о пользователе.")
+    # except Exception:
+    #     await message.answer("Произошла ошибка при получении информации о пользователе.")
 
 @router.message(AuthStates.waiting_for_token)
 async def process_token(message: Message, state: FSMContext, session: AsyncSession):
@@ -72,8 +73,10 @@ async def process_token(message: Message, state: FSMContext, session: AsyncSessi
 
         profile = await get_profile_data(message.text, message)
 
+        user_rating = await get_user_rating_data(message.text, message)
+
         await message.answer(
-            generate_profile_message(profile),
+            generate_profile_message(profile, user_rating),
             reply_markup=get_start_elf_keyboard(),
             parse_mode=ParseMode.HTML
         )
@@ -84,12 +87,13 @@ async def process_token(message: Message, state: FSMContext, session: AsyncSessi
         await state.clear()
 
 
-def generate_profile_message(profile):
+def generate_profile_message(profile, user_rating):
     return (
         f"👤 Имя: <b>{profile.username}</b>\n"
         f"🌟 Рейтинг: <b>{profile.score}({profile.level}lvl)</b>\n"
         f"⚡ Энергия: <b>{profile.attempts}</b>\n"
-        f"🪙 Баланс: <b>{profile.money}</b>"
+        f"🪙 Баланс: <b>{profile.money}</b>\n"
+        f"🏆 Место в рейтинге: <b>{user_rating.position}</b>\n"
     )
 
 async def get_profile_data(user_token: str = None, message: Message = None):
@@ -105,3 +109,17 @@ async def get_profile_data(user_token: str = None, message: Message = None):
     api = GameAPI(BASE_URL, AUTH_PARAMS, req_headers)
     beauty_manager = BeautyManager(api, user_info)
     return await beauty_manager.get_profile()
+
+async def get_user_rating_data(user_token: str = None, message: Message = None):
+    req_headers = HEADERS
+    req_headers["Authorization"] = f"Bearer {user_token}"
+
+    user_info = {
+        'id': message.from_user.id,
+        'username': message.from_user.username
+    }
+
+    # Вывод Данных аккаунта в консоль
+    api = GameAPI(BASE_URL, AUTH_PARAMS, req_headers)
+    beauty_manager = BeautyManager(api, user_info)
+    return await beauty_manager.get_user_rating()

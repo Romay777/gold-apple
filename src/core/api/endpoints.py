@@ -1,7 +1,9 @@
 class GameEndpoints:
     PROFILE = "user/auth"
+    USER_RATING = "game/user-rating"
 
-    BEAUTY_PROCEDURE = "game/beauty-procedure"
+    BEAUTY_PROCEDURE = "beauty-routine/start"
+    BEAUTY_PROCEDURE_END = "beauty-routine/end"
     QUESTS = "game/quests"
 
     COLLECT_QUEST = "game/collect-quest"
@@ -11,3 +13,5 @@ class GameEndpoints:
     GAME_LIST = "game/list"
     GAME_START = "game/start"
     GAME_END = "game/end"
+    OPEN_BOX = "gacha/open"
+    OPEN_BOX_LIST = "gacha/list"

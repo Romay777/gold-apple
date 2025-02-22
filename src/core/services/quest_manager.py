@@ -1,3 +1,4 @@
+import html
 from typing import Dict, List, Optional
 
 from src.core.api.client import QuestAPI
@@ -119,14 +120,14 @@ class QuestManager:
             if completed_quests:
                 messages.append(f"\nВЫПОЛНЕНО ({len(completed_quests)} задач):")
                 for quest in completed_quests:
-                    messages.append(f"— {quest.text}")
+                    messages.append(f"— {clean_text(quest.text)}")
 
             # Then handle in progress quests
             in_progress_quests = daily_quests[QuestStatus.IN_PROGRESS]
             if in_progress_quests:
                 messages.append(f"\nВ ПРОЦЕССЕ ({len(in_progress_quests)} задач):")
                 for quest in in_progress_quests:
-                    messages.append(f"— {quest.text}")
+                    messages.append(f"— {clean_text(quest.text)}")
                     if quest.progress:
                         messages.append(f"    · Прогресс: {quest.progress}/{quest.trigger_count}")
 
@@ -154,7 +155,7 @@ class QuestManager:
                     result = self.api.collect_quest_reward(quest.id)
                     if result and result.get("success"):
                         logger.info(f"Награда за квест '{quest.text}' успешно получена")
-                        messages.append(f"✅ Награда за квест '{quest.text}' успешно получена")
+                        messages.append(f"✅ Награда за квест <b>'{quest.text}'</b> успешно получена")
                     else:
                         logger.error(f"Не удалось получить награду за квест '{quest.text}'")
                         messages.append(f"❌ Не удалось получить награду за квест '{quest.text}'")
@@ -164,3 +165,5 @@ class QuestManager:
                 clear_user_context()
         return result
 
+def clean_text(text):
+    return html.unescape(text)
