@@ -150,11 +150,11 @@ class GameManager:
 
             # Имитируем реальную игру с задержкой
             # TODO выбор длительности для бесконечных игр
-            delay = random.uniform(10, 13)
+            delay = random.uniform(15, 21)
             await asyncio.sleep(delay)
 
             # Завершаем игру
-            end_result = self.api.end_jumper_game(random.randint(80, 120), 100)
+            end_result = self.api.end_jumper_game(random.randint(200, 220), 100)
             if end_result and end_result.get("success"):
                 logger.info(f"Игра Jumper завершена! Счет: {end_result.get('data').get('log').get('score', 0)}")
                 if tg_logging:
