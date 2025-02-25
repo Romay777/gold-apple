@@ -182,6 +182,20 @@ async def perform_procedures(callback: CallbackQuery, session):
 #     await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
 
 
+@router.callback_query(F.data == "spend_energy")
+async def spend_energy(callback: CallbackQuery, session):
+    message = await callback.message.edit_text("🧝‍♂️ <b>Начинаю играть!</b>\n⏳ Получаю данные...",
+                                               parse_mode=ParseMode.HTML)
+    user_info = {
+        'id': callback.from_user.id,
+        'username': callback.from_user.username
+    }
+
+    game_api = await get_api(callback, session, "game")
+    game_manager = GameManager(game_api, user_info)
+    await game_manager.auto_play_games(message)
+    await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
+
 @router.callback_query(F.data == "play_jumper")
 async def play_jumper(callback: CallbackQuery, session):
     message = await callback.message.edit_text("🧝‍♂️ <b>Начинаю играть!</b>\n⏳ Получаю данные...",
@@ -193,7 +207,7 @@ async def play_jumper(callback: CallbackQuery, session):
     try:
         game_api = await get_api(callback, session, "game")
         game_manager = GameManager(game_api, user_info)
-        await game_manager.play_jumper(message)
+        await game_manager.start_jumper(message)
         await message.edit_reply_markup(reply_markup=get_after_jumper_keyboard())
     except:
         logger.warn("Failed to play jumper")
@@ -285,8 +299,11 @@ async def back_to_profile(callback: CallbackQuery, session):
     profile = await beauty_manager.get_profile()
     user_rating = await beauty_manager.get_user_rating()
 
-    await callback.message.edit_text(
-        generate_profile_message(profile, user_rating),
-        reply_markup=get_start_elf_keyboard(),
-        parse_mode=ParseMode.HTML
-    )
+    try:
+        await callback.message.edit_text(
+            generate_profile_message(profile, user_rating),
+            reply_markup=get_start_elf_keyboard(),
+            parse_mode=ParseMode.HTML
+        )
+    except:
+        logger.error("Failed to back to profile")

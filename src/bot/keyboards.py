@@ -6,12 +6,15 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 def get_start_elf_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
+            # TODO NEEDS FIX
             # [InlineKeyboardButton(text="👽 Выполнить все доступное", callback_data="start_elf_care")],
             # [InlineKeyboardButton(text="--------------------", callback_data="nothing")],
-            [InlineKeyboardButton(text="💅 Выполнить процедуры", callback_data="perform_procedures")],
+            # [InlineKeyboardButton(text="💅 Выполнить процедуры", callback_data="perform_procedures")],
+            # [InlineKeyboardButton(text="❤️ Поставить лайк", callback_data="give_like")],
+
+            [InlineKeyboardButton(text="⚡️ Потратить энергию", callback_data="spend_energy")],
             [InlineKeyboardButton(text="🎮 Сыграть в игры", callback_data="play_games")],
             [InlineKeyboardButton(text="🎁 Открыть бокс", callback_data="open_box")],
-            # [InlineKeyboardButton(text="❤️ Поставить лайк", callback_data="give_like")],
             [InlineKeyboardButton(text="📋 Просмотреть квесты + награды", callback_data="view_quests")],
         ]
     )
@@ -27,10 +30,19 @@ def get_games_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="♾️ Jumper", callback_data="play_jumper")],
-            [InlineKeyboardButton(text="🧩 Match3", callback_data="play_match3")],
-            [InlineKeyboardButton(text="♾️ Runner", callback_data="play_jumper")],
-            [InlineKeyboardButton(text="⁉️ Memories", callback_data="play_match3")],
+            [InlineKeyboardButton(text="🧝‍♂️ Вернуться к меню", callback_data="back_to_profile")],
+            # [InlineKeyboardButton(text="🧩 Match3", callback_data="play_match3")],
+            # [InlineKeyboardButton(text="♾️ Runner", callback_data="play_jumper")],
+            # [InlineKeyboardButton(text="⁉️ Memories", callback_data="play_match3")],
 
+        ]
+    )
+
+def get_stop_autoplay_keyboard() -> InlineKeyboardMarkup:
+    """Возвращает клавиатуру с кнопкой остановки авто-игры"""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🛑 Остановить", callback_data="stop_auto_play")],
         ]
     )
 

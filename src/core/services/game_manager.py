@@ -5,6 +5,7 @@ from typing import Optional
 from aiogram.enums import ParseMode
 from aiogram.types import Message
 
+from src.bot.keyboards import get_stop_autoplay_keyboard, get_back_profile_keyboard
 from src.core.api.client import GameAPI
 from src.core.models.game import GameSession, Game, Drop
 from src.utils.logger import set_user_context, logger, clear_user_context
@@ -126,7 +127,7 @@ class GameManager:
             if self.user_info:
                 clear_user_context()
 
-    async def play_jumper(self, message: Message) -> bool:
+    async def play_jumper(self, message: Message, tg_logging: bool = True) -> bool:
         """Играет в Jumper"""
         if self.user_info:
             set_user_context(self.user_info.get("id"), self.user_info.get("username"))
@@ -149,25 +150,27 @@ class GameManager:
 
             # Имитируем реальную игру с задержкой
             # TODO выбор длительности для бесконечных игр
-            delay = random.uniform(10, 15)
+            delay = random.uniform(10, 13)
             await asyncio.sleep(delay)
 
             # Завершаем игру
             end_result = self.api.end_jumper_game(random.randint(80, 120), 100)
             if end_result and end_result.get("success"):
                 logger.info(f"Игра Jumper завершена! Счет: {end_result.get('data').get('log').get('score', 0)}")
-                await message.edit_text(f"🎮 <b>Jumper</b> успешно завершена! Счет: {end_result.get('data').get('log').get('score', 0)}"
-                                        f"\n Получено монет: {end_result.get('data').get('log').get('money_collected', 0)}",
-                                        parse_mode=ParseMode.HTML)
+                if tg_logging:
+                    await message.edit_text(
+                        f"🎮 <b>Jumper</b> успешно завершена! Счет: {end_result.get('data').get('log').get('score', 0)}"
+                        f"\n Получено монет: {end_result.get('data').get('log').get('money_collected', 0)}",
+                        parse_mode=ParseMode.HTML)
                 return True
             else:
                 logger.error(f"Не удалось завершить игру Jumper")
-                await message.edit_text(f"🎮 <b>Jumper</b> не удалось завершить!", parse_mode=ParseMode.HTML)
+                if tg_logging:
+                    await message.edit_text(f"🎮 <b>Jumper</b> не удалось завершить!", parse_mode=ParseMode.HTML)
                 return False
         finally:
             if self.user_info:
                 clear_user_context()
-
 
     # async def play_match3(self, message: Message) -> bool:
     #     """Играет в Match3"""
@@ -181,76 +184,102 @@ class GameManager:
     #     """Играет в Runner"""
     #     return await self._play_game("Runner", message)
 
-    async def auto_play_games(self, message: Message):
-        """Автоматически играет в игры по очереди, пока есть энергия"""
-        if self.user_info:
-            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
+    # TODO make games different
+    async def auto_play_games(self, message: Message) -> None:
+        """
+        Автоматически играет в Jumper столько раз, сколько позволяет энергия игрока.
+        Делает перерыв между играми в 1 секунду и показывает прогресс.
+        Имеет кнопку для остановки процесса.
+        """
+        # Флаг для отслеживания остановки процесса
+        self.auto_play_running = True
+
         try:
-            logger.debug("=== Автоматический запуск игр ===")
+            # Получаем текущую энергию игрока
+            energy = await self.get_user_energy()
 
-            game_sequence = ["Jumper", "Match3", "Runner", "Memories"]  # Список игр в порядке очередности
+            if energy <= 0:
+                await message.edit_text("❌ Недостаточно энергии для игры", parse_mode=ParseMode.HTML)
+                return
 
-            while True:
-                games = await self.get_available_games()
-                user_energy = await self.get_user_energy()
+            logger.info(f"Начинаем автоматическую игру в Jumper. Доступно энергии: {energy}")
+            await message.edit_text(f"🎮 <b>Авто-игра Jumper</b> запущена!\nДоступно энергии: {energy}",
+                                    parse_mode=ParseMode.HTML)
 
-                if user_energy < 3:
-                    logger.info(f"Недостаточно энергии: {user_energy}")
-                    await message.edit_text(f"⚡ <b>Недостаточно энергии: {user_energy}</b>",
-                                            parse_mode=ParseMode.HTML)
-                    break
-                elif not user_energy:
-                    logger.error("Не удалось получить энергию пользователя")
-                    await message.edit_text("❌ <b>Не удалось получить энергию пользователя</b>",
-                                            parse_mode=ParseMode.HTML)
-                    break
+            games_played = 0
+            total_games = energy
 
-                for game_name in game_sequence:
-                    game = next((g for g in games if g.name == game_name), None)
+            # Создаем сообщение для статуса с кнопкой остановки
+            keyboard = get_stop_autoplay_keyboard()
+            status_message = await message.answer(
+                f"⏳ Прогресс: [{games_played}/{total_games}]",
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboard
+            )
 
-                    if not game or not game.is_available or user_energy < game.energy:
-                        logger.info(f"Игра {game_name} недоступна или закончилась энергия (кол-во: {user_energy})")
-                        await message.edit_text(
-                            f"❌ Игра <b>{game_name}</b> недоступна или закончилась энергия (кол-во: {user_energy})",
-                            parse_mode=ParseMode.HTML)
-                        await asyncio.sleep(0.8)
-                        continue
+            # Для предотвращения ошибки "message is not modified"
+            last_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"
 
-                    try:
-                        await message.edit_text(f"🎮 Играем в <b>{game_name}</b>...", parse_mode=ParseMode.HTML)
-                        play_method = getattr(self, f"play_{game_name.lower()}")
-                        if not await play_method(message):
-                            await message.edit_text(f"❌ Не смогли сыграть в <b>{game_name}</b>",
-                                                    parse_mode=ParseMode.HTML)
-                        await asyncio.sleep(0.6)
-                        # Обновляем уровень энергии после игры
-                        user_energy = await self.get_user_energy()
-                        if not user_energy:
-                            await message.edit_text(f"⚡ <b>Закончилась энергия</b>", parse_mode=ParseMode.HTML)
-                            await asyncio.sleep(1)
-                            break
+            while games_played < total_games and self.auto_play_running:
+                # Запускаем игру с tg_logging=False
+                success = await self.play_jumper(message, tg_logging=False)
 
-                    except Exception as e:
-                        logger.error(f"Ошибка при выполнении {game_name}: {e}")
-                        break
-
+                if success:
+                    games_played += 1
+                    logger.info(f"Успешно сыграна игра {games_played} из {total_games}")
                 else:
-                    # Если ни одна игра не может быть запущена, завершаем цикл
-                    logger.info("Ни одна игра не была запущена. Завершаем автоматический запуск.")
-                    await message.edit_text(f"🎮 <b>Сыграли во все доступные игры</b>", parse_mode=ParseMode.HTML)
-                    break
+                    logger.error(f"Ошибка при игре {games_played + 1} из {total_games}")
+
+                # Обновляем статус только если текст изменился
+                new_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"
+                if new_status_text != last_status_text:
+                    try:
+                        await status_message.edit_text(
+                            new_status_text,
+                            parse_mode=ParseMode.HTML,
+                            reply_markup=keyboard
+                        )
+                        last_status_text = new_status_text
+                    except Exception as e:
+                        if "message is not modified" not in str(e):
+                            logger.error(f"Ошибка при обновлении статуса: {str(e)}")
+
+                # Делаем перерыв в 1 секунду между играми
+                if games_played < total_games and self.auto_play_running:
+                    await asyncio.sleep(1)
+
+            # Финальное сообщение
+            if self.auto_play_running:  # Если процесс не был остановлен пользователем
+                final_status = f"✅ Авто-игра завершена! Сыграно игр: [{games_played}/{total_games}]"
+                if final_status != last_status_text:
+                    try:
+                        await status_message.edit_text(
+                            final_status,
+                            parse_mode=ParseMode.HTML,
+                            keyboard=get_back_profile_keyboard()
+                        )
+                    except Exception as e:
+                        if "message is not modified" not in str(e):
+                            logger.error(f"Ошибка при обновлении финального статуса: {str(e)}")
+
+                await message.edit_text(
+                    f"🎮 <b>Авто-игра Jumper</b> завершена!\nСыграно игр: <b>{games_played}</b>",
+                    parse_mode=ParseMode.HTML
+                )
+
+        except Exception as e:
+            logger.error(f"Ошибка в auto_play_games: {str(e)}")
+            await message.edit_text(f"❌ Ошибка при автоматической игре: {str(e)}", parse_mode=ParseMode.HTML)
+
         finally:
-            if self.user_info:
-                clear_user_context()
-            logger.debug("=== Автоматический запуск игр завершен ===")
+            # Сбрасываем флаг запуска
+            self.auto_play_running = False
 
     async def start_jumper(self, message: Message):
         if self.user_info:
             set_user_context(self.user_info.get("id"), self.user_info.get("username"))
 
         try:
-            logger.info("Начинаем игру Jumper")
-
             user_energy = await self.get_user_energy()
 
             if user_energy < 3:
@@ -264,7 +293,7 @@ class GameManager:
                                         parse_mode=ParseMode.HTML)
                 return
 
-            if not self.play_jumper(message):
+            if not await self.play_jumper(message):
                 await message.edit_text("❌ Не смогли сыграть в Jumper", parse_mode=ParseMode.HTML)
                 return
         finally:
@@ -298,9 +327,9 @@ class GameManager:
             result = self._parse_box_drop(result)
             logger.info(f"Открыл бокс [{result}]")
             msg = f"🎊 Выпало: <b>{result.title}</b>\n"
-            msg += f"Получено энергии: <b>{result.attempts}</b>\n" if result.attempts is not None else ""
-            msg += f"Получено монет: <b>{result.money}</b>\n" if result.money is not None else ""
-            msg += f"Получено опыта: <b>{result.score}</b>\n" if result.score is not None else ""
+            msg += f"⚡️ Получено энергии: <b>{result.attempts}</b>\n" if result.attempts is not None else ""
+            msg += f"🪙 Получено монет: <b>{result.money}</b>\n" if result.money is not None else ""
+            msg += f"🌟 Получено опыта: <b>{result.score}</b>\n" if result.score is not None else ""
 
             # TODO get limit from list
             msg += f"\n🎁 Можно открыть боксов сегодня: <b>{await self.get_limit(message)}</b>"
