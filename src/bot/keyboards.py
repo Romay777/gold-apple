@@ -33,3 +33,19 @@ def get_games_keyboard() -> InlineKeyboardMarkup:
 
         ]
     )
+
+def get_after_jumper_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🧝‍♂️ Вернуться к меню", callback_data="back_to_profile")],
+            [InlineKeyboardButton(text="🎮 Сыграть ещё", callback_data="play_jumper")],
+        ]
+    )
+
+def get_after_box_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🧝‍♂️ Вернуться к меню", callback_data="back_to_profile")],
+            [InlineKeyboardButton(text="🎁 Открыть ещё", callback_data="open_box")],
+        ]
+    )

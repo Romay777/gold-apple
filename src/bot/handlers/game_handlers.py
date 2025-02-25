@@ -8,13 +8,15 @@ from sqlalchemy import select
 
 from src.bot.database import User
 from src.bot.handlers.auth_handlers import generate_profile_message
-from src.bot.keyboards import get_start_elf_keyboard, get_back_profile_keyboard, get_games_keyboard
+from src.bot.keyboards import get_start_elf_keyboard, get_back_profile_keyboard, get_games_keyboard, \
+    get_after_jumper_keyboard, get_after_box_keyboard
 from src.config.constants import BASE_URL, AUTH_PARAMS, HEADERS
 from src.core.api.client import GameAPI, UserAPI, QuestAPI
 from src.core.services.beauty_manager import BeautyManager
 from src.core.services.game_manager import GameManager
 from src.core.services.quest_manager import QuestManager
 from src.core.services.user_manager import UserManager
+from src.utils.logger import logger
 
 router = Router()
 
@@ -188,11 +190,15 @@ async def play_jumper(callback: CallbackQuery, session):
         'id': callback.from_user.id,
         'username': callback.from_user.username
     }
+    try:
+        game_api = await get_api(callback, session, "game")
+        game_manager = GameManager(game_api, user_info)
+        await game_manager.play_jumper(message)
+        await message.edit_reply_markup(reply_markup=get_after_jumper_keyboard())
+    except:
+        logger.warn("Failed to play jumper")
+        await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
 
-    game_api = await get_api(callback, session, "game")
-    game_manager = GameManager(game_api, user_info)
-    await game_manager.play_jumper(message)
-    await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
 
 # @router.callback_query(F.data == "give_like")
 # async def give_like(callback: CallbackQuery, session):
@@ -236,7 +242,7 @@ async def open_box(callback: CallbackQuery, session):
     #     parse_mode=ParseMode.HTML
     # )
 
-    await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
+    await message.edit_reply_markup(reply_markup=get_after_box_keyboard())
 
 
 

@@ -25,8 +25,11 @@ class GameManager:
         if not data or not data.get("success"):
             return None
 
-        drop_data = data.get("data", {}).get("prizes", {})
-        print(drop_data)
+        prizes = data.get("data", {}).get("prizes", [])
+        if not prizes or len(prizes) == 0:
+            return None
+
+        drop_data = prizes[0]  # Берем первый элемент из списка prizes
         return Drop(
             title=drop_data.get("title", "unknown"),
             attempts=drop_data.get("attempts", 0),
@@ -288,19 +291,19 @@ class GameManager:
             if not result or not result.get("success"):
                 logger.error("Не удалось открыть ящик")
                 msg = "❌ Не удалось открыть ящик\n"
-                msg += f"Можно открыть боксов сегодня: <b>{await self.get_limit(message)}</b>"
+                msg += f"🎁 Можно открыть боксов сегодня: <b>{await self.get_limit(message)}</b>"
                 await message.edit_text(msg, parse_mode=ParseMode.HTML)
                 return False
 
             result = self._parse_box_drop(result)
             logger.info(f"Открыл бокс [{result}]")
-            msg = f"Выпало: <b>{result.title}</b>\n"
-            msg += f"Получено энергии: {result.attempts}\n" if result.attempts != 0 else ""
-            msg += f"Получено монет: {result.money}\n" if result.money != 0 else ""
-            msg += f"Получено опыта: {result.score}\n" if result.score != 0 else ""
+            msg = f"🎊 Выпало: <b>{result.title}</b>\n"
+            msg += f"Получено энергии: <b>{result.attempts}</b>\n" if result.attempts is not None else ""
+            msg += f"Получено монет: <b>{result.money}</b>\n" if result.money is not None else ""
+            msg += f"Получено опыта: <b>{result.score}</b>\n" if result.score is not None else ""
 
             # TODO get limit from list
-            msg += f"Можно открыть боксов сегодня: <b>{await self.get_limit(message)}</b>"
+            msg += f"\n🎁 Можно открыть боксов сегодня: <b>{await self.get_limit(message)}</b>"
 
             await message.edit_text(
                 f"{msg}",
