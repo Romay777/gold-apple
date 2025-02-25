@@ -256,7 +256,7 @@ class GameManager:
                         await status_message.edit_text(
                             final_status,
                             parse_mode=ParseMode.HTML,
-                            keyboard=get_back_profile_keyboard()
+                            reply_markup=get_back_profile_keyboard()
                         )
                     except Exception as e:
                         if "message is not modified" not in str(e):
@@ -282,7 +282,7 @@ class GameManager:
         try:
             user_energy = await self.get_user_energy()
 
-            if user_energy < 3:
+            if user_energy < 1:
                 logger.info(f"Недостаточно энергии: {user_energy}")
                 await message.edit_text(f"⚡ <b>Недостаточно энергии: {user_energy}</b>",
                                         parse_mode=ParseMode.HTML)

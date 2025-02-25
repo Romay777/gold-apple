@@ -50,6 +50,9 @@ class QuestAPI(BaseAPI):
 
 
 class GameAPI(BaseAPI):
+    def list_beauty_procedure(self) -> Optional[dict]:
+        return self._make_request(GameEndpoints.BEAUTY_PROCEDURE_LIST, method="POST", params=AUTH_PARAMS)
+
     def perform_beauty_procedure(self, procedure_id: int) -> Optional[dict]:
         """
         Выполняет бьюти процедуру.

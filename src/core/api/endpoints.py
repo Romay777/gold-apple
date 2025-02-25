@@ -2,6 +2,7 @@ class GameEndpoints:
     PROFILE = "user/auth"
     USER_RATING = "game/user-rating"
 
+    BEAUTY_PROCEDURE_LIST = "beauty-routine/list"
     BEAUTY_PROCEDURE = "beauty-routine/start"
     BEAUTY_PROCEDURE_END = "beauty-routine/end"
     QUESTS = "game/quests"

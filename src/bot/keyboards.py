@@ -9,9 +9,8 @@ def get_start_elf_keyboard() -> InlineKeyboardMarkup:
             # TODO NEEDS FIX
             # [InlineKeyboardButton(text="👽 Выполнить все доступное", callback_data="start_elf_care")],
             # [InlineKeyboardButton(text="--------------------", callback_data="nothing")],
-            # [InlineKeyboardButton(text="💅 Выполнить процедуры", callback_data="perform_procedures")],
             # [InlineKeyboardButton(text="❤️ Поставить лайк", callback_data="give_like")],
-
+            [InlineKeyboardButton(text="💅 Выполнить процедуры", callback_data="perform_procedures")],
             [InlineKeyboardButton(text="⚡️ Потратить энергию", callback_data="spend_energy")],
             [InlineKeyboardButton(text="🎮 Сыграть в игры", callback_data="play_games")],
             [InlineKeyboardButton(text="🎁 Открыть бокс", callback_data="open_box")],

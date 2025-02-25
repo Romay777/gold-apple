@@ -57,6 +57,13 @@ class BeautyManager:
             position=user_rating_data.get("position", 0)
         )
 
+    def _parse_beauty_id(self, data: dict) -> Optional[int]:
+        if not data or not data.get("success"):
+            return None
+
+        items = data.get("data", {}).get("list", [])
+        return items[0].get("id") if items else None
+
     async def get_profile(self) -> Optional[Profile]:
         """Получает профиль игрока с информацией о бьюти процедурах"""
         if self.user_info:
@@ -106,7 +113,16 @@ class BeautyManager:
                 await message.edit_text("🚫 <b>Недостаточно денег</b>", parse_mode=ParseMode.HTML)
                 return
 
-            result = self.api.perform_beauty_procedure(1)
+            # TODO get id by
+            b_list =  self.api.list_beauty_procedure()
+            if list:
+                b_id = self._parse_beauty_id(b_list)
+            else:
+                logger.error("Не удалось получить id процедуры")
+                await message.edit_text("Не удалось получить id процедуры", parse_mode=ParseMode.HTML)
+                return
+
+            result = self.api.perform_beauty_procedure(b_id)
             if result and result.get("success"):
                 logger.info(f"Успешно запущены процедуры")
                 await message.edit_text(f"☑️ <b>Успешно запущены процедуры!</b>",
@@ -126,10 +142,10 @@ class BeautyManager:
                 return
 
             await asyncio.sleep(random.randint(2, 4))
-            result = self.api.end_beauty_procedure(1, 4)
+            result = self.api.end_beauty_procedure(b_id, 4)
             if result and result.get("success"):
-                logger.info(f"Успешно завершены процедуры", "Баланс: %s 🪙", profile.money-250)
-                await message.edit_text(f"Процедуры завершены!\n🪙 Баланс: <b>{profile.money - 250}</b>",
+                logger.info(f"Успешно завершены процедуры, Баланс: {profile.money} 🪙")
+                await message.edit_text(f"✨ Процедуры завершены!\n🪙 Баланс: <b>{profile.money}</b>",
                                         parse_mode=ParseMode.HTML)
             else:
                 logger.error(f"Не удалось завершить процедуры")
