@@ -106,17 +106,17 @@ class GameManager:
                 return False
 
             # Имитируем реальную игру с задержкой
-            delay = random.uniform(7, 12)
+            delay = random.uniform(7, 11)
             await asyncio.sleep(delay)
 
             # Получаем соответствующий метод для завершения конкретной игры
             end_game_method = getattr(self.api, f"end_{game_name.lower()}_game")
 
             # Завершаем игру
-            end_result = end_game_method(session.max_score)
+            end_result = end_game_method(50)
             if end_result and end_result.get("success"):
-                logger.info(f"Игра {game_name} завершена со счетом {session.max_score}")
-                await message.edit_text(f"🎮 <b>{game_name}</b> успешно завершена! Счет: {session.max_score}",
+                logger.info(f"Игра {game_name} завершена со счетом {50}")
+                await message.edit_text(f"🎮 <b>{game_name}</b> успешно завершена! Счет: {50}",
                                         parse_mode=ParseMode.HTML)
                 return True
             else:
@@ -126,6 +126,23 @@ class GameManager:
         finally:
             if self.user_info:
                 clear_user_context()
+
+
+    async def enough_user_energy(self, message: Message) -> bool:
+        """Проверяет энергию пользователя"""
+        user_energy = await self.get_user_energy()
+
+        if user_energy < 1:
+            logger.info(f"Недостаточно энергии: {user_energy}")
+            await message.edit_text(f"⚡ <b>Недостаточно энергии: {user_energy}</b>",
+                                    parse_mode=ParseMode.HTML)
+            return False
+        elif not user_energy:
+            logger.error("Не удалось получить энергию пользователя")
+            await message.edit_text("❌ <b>Не удалось получить энергию пользователя</b>",
+                                    parse_mode=ParseMode.HTML)
+            return False
+        return True
 
     async def play_jumper(self, message: Message, tg_logging: bool = True) -> bool:
         """Играет в Jumper"""
@@ -138,7 +155,7 @@ class GameManager:
             result = self.api.start_game("Jumper")
             if not result or not result.get("success"):
                 logger.error(f"Не удалось начать игру Jumper")
-                await message.edit_text(f"🎮 <b>Jumper</b> не удалось начать!", parse_mode=ParseMode.HTML)
+                await message.edit_text(f"🎮 <b>Прыжки</b> не удалось начать!", parse_mode=ParseMode.HTML)
                 return False
 
             # Парсим данные сессии
@@ -159,30 +176,74 @@ class GameManager:
                 logger.info(f"Игра Jumper завершена! Счет: {end_result.get('data').get('log').get('score', 0)}")
                 if tg_logging:
                     await message.edit_text(
-                        f"🎮 <b>Jumper</b> успешно завершена! Счет: {end_result.get('data').get('log').get('score', 0)}"
+                        f"🎮 <b>Прыжки</b> успешно завершены! Счет: {end_result.get('data').get('log').get('score', 0)}"
                         f"\n Получено монет: {end_result.get('data').get('log').get('money_collected', 0)}",
                         parse_mode=ParseMode.HTML)
                 return True
             else:
                 logger.error(f"Не удалось завершить игру Jumper")
                 if tg_logging:
-                    await message.edit_text(f"🎮 <b>Jumper</b> не удалось завершить!", parse_mode=ParseMode.HTML)
+                    await message.edit_text(f"🎮 <b>Прыжки</b> не удалось завершить!", parse_mode=ParseMode.HTML)
                 return False
         finally:
             if self.user_info:
                 clear_user_context()
 
-    # async def play_match3(self, message: Message) -> bool:
-    #     """Играет в Match3"""
-    #     return await self._play_game("Match3", message)
-    #
-    # async def play_memories(self, message: Message) -> bool:
-    #     """Играет в Memories"""
-    #     return await self._play_game("Memories", message)
-    #
-    # async def play_runner(self, message: Message) -> bool:
-    #     """Играет в Runner"""
-    #     return await self._play_game("Runner", message)
+
+    # TODO runner
+    async def play_runner(self, message: Message, tg_logging: bool = True) -> bool:
+        """Играет в Runner"""
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
+        try:
+            logger.info(f"Начинаем игру Runner")
+
+            # Начинаем игру
+            result = self.api.start_game("Runner")
+            if not result or not result.get("success"):
+                logger.error(f"Не удалось начать игру Runner")
+                await message.edit_text(f"🎮 <b>Бьюти-пад</b> не удалось начать!", parse_mode=ParseMode.HTML)
+                return False
+
+            # Парсим данные сессии
+            session = self._parse_game_session(result)
+            if not session:
+                logger.error("Не удалось получить данные игровой сессии")
+                await message.edit_text("❌ Не удалось получить данные игровой сессии", parse_mode=ParseMode.HTML)
+                return False
+
+            # Имитируем реальную игру с задержкой
+            # TODO выбор длительности для бесконечных игр
+            delay = random.uniform(15, 21)
+            await asyncio.sleep(delay)
+
+            # Завершаем игру
+            end_result = self.api.end_runner_game(random.randint(180, 220), 100)
+            if end_result and end_result.get("success"):
+                logger.info(f"Игра Runner завершена! Счет: {end_result.get('data').get('log').get('score', 0)}")
+                if tg_logging:
+                    await message.edit_text(
+                        f"🎮 <b>Бьюти-пад</b> успешно завершен! Счет: {end_result.get('data').get('log').get('score', 0)}"
+                        f"\n Получено монет: {end_result.get('data').get('log').get('money_collected', 0)}",
+                        parse_mode=ParseMode.HTML)
+                return True
+            else:
+                logger.error(f"Не удалось завершить игру Runner")
+                if tg_logging:
+                    await message.edit_text(f"🎮 <b>Бьюти-пад</b> не удалось завершить!", parse_mode=ParseMode.HTML)
+                return False
+        finally:
+            if self.user_info:
+                clear_user_context()
+
+    async def play_match3(self, message: Message) -> bool:
+        """Играет в Match3"""
+        return await self._play_game("Match3", message)
+
+    async def play_memories(self, message: Message) -> bool:
+        """Играет в Memories"""
+        return await self._play_game("Memories", message)
+
 
     # TODO make games different
     async def auto_play_games(self, message: Message) -> None:
@@ -280,34 +341,60 @@ class GameManager:
             set_user_context(self.user_info.get("id"), self.user_info.get("username"))
 
         try:
-            user_energy = await self.get_user_energy()
-
-            if user_energy < 1:
-                logger.info(f"Недостаточно энергии: {user_energy}")
-                await message.edit_text(f"⚡ <b>Недостаточно энергии: {user_energy}</b>",
-                                        parse_mode=ParseMode.HTML)
-                return
-            elif not user_energy:
-                logger.error("Не удалось получить энергию пользователя")
-                await message.edit_text("❌ <b>Не удалось получить энергию пользователя</b>",
-                                        parse_mode=ParseMode.HTML)
+            if not await self.enough_user_energy(message):
                 return
 
             if not await self.play_jumper(message):
-                await message.edit_text("❌ Не смогли сыграть в Jumper", parse_mode=ParseMode.HTML)
+                await message.edit_text("❌ Не смогли сыграть в Прыжки", parse_mode=ParseMode.HTML)
                 return
         finally:
             if self.user_info:
                 clear_user_context()
 
-    async def start_runner(self):
-        return
+    async def start_runner(self, message: Message):
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
 
-    async def start_match3(self):
-        return
+        try:
+            if not await self.enough_user_energy(message):
+                return
 
-    async def start_memories(self):
-        return
+            if not await self.play_runner(message):
+                await message.edit_text("❌ Не смогли сыграть в Бьюти-пад", parse_mode=ParseMode.HTML)
+                return
+        finally:
+            if self.user_info:
+                clear_user_context()
+
+    async def start_match3(self, message: Message):
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
+
+        try:
+            if not await self.enough_user_energy(message):
+                return
+
+            if not await self.play_match3(message):
+                await message.edit_text("❌ Не смогли сыграть в Три в ряд", parse_mode=ParseMode.HTML)
+                return
+        finally:
+            if self.user_info:
+                clear_user_context()
+
+    async def start_memories(self, message: Message):
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
+
+        try:
+            if not await self.enough_user_energy(message):
+                return
+
+            if not await self.play_memories(message):
+                await message.edit_text("❌ Не смогли сыграть в карточки", parse_mode=ParseMode.HTML)
+                return
+        finally:
+            if self.user_info:
+                clear_user_context()
 
     async def open_box(self, message: Message):
         """Открывает обычный бокс за 300 монет"""

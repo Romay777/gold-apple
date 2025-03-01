@@ -28,12 +28,11 @@ def get_back_profile_keyboard() -> InlineKeyboardMarkup:
 def get_games_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="♾️ Jumper", callback_data="play_jumper")],
+            [InlineKeyboardButton(text="♾️ Прыжки", callback_data="play_jumper")],
+            [InlineKeyboardButton(text="👛 Бьюти-пад", callback_data="play_runner")],
+            [InlineKeyboardButton(text="⁉️ Memories", callback_data="play_match3")],
+            [InlineKeyboardButton(text="🧩 Match3", callback_data="play_match3")],
             [InlineKeyboardButton(text="🧝‍♂️ Вернуться к меню", callback_data="back_to_profile")],
-            # [InlineKeyboardButton(text="🧩 Match3", callback_data="play_match3")],
-            # [InlineKeyboardButton(text="♾️ Runner", callback_data="play_jumper")],
-            # [InlineKeyboardButton(text="⁉️ Memories", callback_data="play_match3")],
-
         ]
     )
 
@@ -45,11 +44,11 @@ def get_stop_autoplay_keyboard() -> InlineKeyboardMarkup:
         ]
     )
 
-def get_after_jumper_keyboard() -> InlineKeyboardMarkup:
+def get_after_game_keyboard(game: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🧝‍♂️ Вернуться к меню", callback_data="back_to_profile")],
-            [InlineKeyboardButton(text="🎮 Сыграть ещё", callback_data="play_jumper")],
+            [InlineKeyboardButton(text="🎮 Сыграть ещё", callback_data=f"play_{game}")],
         ]
     )
 

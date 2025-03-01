@@ -144,19 +144,28 @@ class GameAPI(BaseAPI):
 
         return self._make_request(GameEndpoints.GAME_END, method="POST", data=data)
 
+    def end_runner_game(self, score: int, money: int) -> Optional[dict]:
+        # return self._end_game(score)
+        data = {
+            "is_win": 1,
+            "score": score,
+            "money": money
+        }
+
+        return self._make_request(GameEndpoints.GAME_END, method="POST", data=data)
+
     def end_match3_game(self, score: int) -> Optional[dict]:
         additional_data = {
             "ram": 2,
             "cross": 2,
             "color": 2
         }
-        return self._end_game(score, additional_data)
+        return self._end_game(score, 100, additional_data)
 
     def end_memories_game(self, score: int) -> Optional[dict]:
         return self._end_game(score)
 
-    def end_runner_game(self, score: int):
-        return self._end_game(score)
+
 
 
 class UserAPI(BaseAPI):

@@ -12,6 +12,7 @@ class GameSession:
    game_type: str
    max_score: int
 
+
 @dataclass
 class Drop:
    title: str

@@ -144,8 +144,8 @@ class BeautyManager:
             await asyncio.sleep(random.randint(2, 4))
             result = self.api.end_beauty_procedure(b_id, 4)
             if result and result.get("success"):
-                logger.info(f"Успешно завершены процедуры, Баланс: {profile.money} 🪙")
-                await message.edit_text(f"✨ Процедуры завершены!\n🪙 Баланс: <b>{profile.money}</b>",
+                logger.info(f"Успешно завершены процедуры")
+                await message.edit_text(f"✨ Процедуры завершены!",
                                         parse_mode=ParseMode.HTML)
             else:
                 logger.error(f"Не удалось завершить процедуры")
