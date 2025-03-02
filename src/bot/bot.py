@@ -9,7 +9,7 @@ from src.utils.logger import logger
 
 async def launch():
     # Инициализация бота и диспетчера
-    bot = Bot(token="7929207204:AAHWRYap92rrbKV9eB038_6p80FbGN2i8to")
+    bot = Bot(token="7522679120:AAG58zM0a9duB3rnCtzTmA0qnD-zoic-syE")
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
 
