@@ -68,7 +68,7 @@ class BeautyManager:
         """Получает профиль игрока с информацией о бьюти процедурах"""
         if self.user_info:
             set_user_context(self.user_info.get("id"), self.user_info.get("username"))
-        logger.info("Получение профиля игрока")
+        logger.info("Getting profile")
         result = self.api.get_profile()
         return self._parse_profile(result)
 
@@ -76,14 +76,14 @@ class BeautyManager:
         """Получает рейтинг игрока"""
         if self.user_info:
             set_user_context(self.user_info.get("id"), self.user_info.get("username"))
-        logger.info("Получение рейтинга игрока")
+        logger.info("Getting user rating")
         result = self.api.get_user_rating()
         return self._parse_user_rating(result)
 
     async def print_profile_normalized(self) -> None:
         profile = await self.get_profile()
         if not profile:
-            print("Не удалось получить профиль")
+            logger.error("Error getting profile")
             return
 
         print(
@@ -101,15 +101,15 @@ class BeautyManager:
             set_user_context(self.user_info.get("id"), self.user_info.get("username"))
 
         try:
-            logger.debug("Выполнение бьюти-процедур")
+            logger.debug("Begin perform_procedures")
             profile = await self.get_profile()
             if not profile:
-                logger.error("Не удалось получить профиль")
+                logger.error("Cannot get profile")
                 await message.edit_text("Не удалось получить профиль", parse_mode=ParseMode.HTML)
                 return
 
             if profile.money < 250:
-                logger.error("Недостаточно денег")
+                logger.warn("Not enough money")
                 await message.edit_text("🚫 <b>Недостаточно денег</b>", parse_mode=ParseMode.HTML)
                 return
 
@@ -118,24 +118,24 @@ class BeautyManager:
             if list:
                 b_id = self._parse_beauty_id(b_list)
             else:
-                logger.error("Не удалось получить id процедуры")
+                logger.error("Cannot get beauty id")
                 await message.edit_text("Не удалось получить id процедуры", parse_mode=ParseMode.HTML)
                 return
 
             result = self.api.perform_beauty_procedure(b_id)
             if result and result.get("success"):
-                logger.info(f"Успешно запущены процедуры")
+                logger.info(f"Successfully started procedures")
                 await message.edit_text(f"☑️ <b>Успешно запущены процедуры!</b>",
                                         parse_mode=ParseMode.HTML)
             else:
                 reason = result.get("data", {}).get("name", "Неизвестная причина")
                 if reason == "You have reached the day limit of this routine":
-                    logger.debug(f"Не удалось начать процедуры", "Причина: Процедуры уже выполнены", )
+                    logger.debug(f"Cannot start procedures", "Reason: You have reached the day limit of this routine", )
                     await message.edit_text(f"⚠️ <b>Не удалось начать процедуры</b>\n"
                                             f"Причина: <b>Процедуры уже выполнены</b>\f",
                                             parse_mode=ParseMode.HTML)
                 else:
-                    logger.warning(f"Не удалось начать процедуры", "Причина: ", reason)
+                    logger.warning(f"Cannot start procedures", "Reason: ", reason)
                     await message.edit_text(f"⚠️ <b>Не удалось начать процедуры</b>\n"
                                             f"Причина: <b>{reason}</b>\f",
                                             parse_mode=ParseMode.HTML)
@@ -144,11 +144,11 @@ class BeautyManager:
             await asyncio.sleep(random.randint(2, 4))
             result = self.api.end_beauty_procedure(b_id, 4)
             if result and result.get("success"):
-                logger.info(f"Успешно завершены процедуры")
+                logger.info(f"Successfully ended procedures")
                 await message.edit_text(f"✨ Процедуры завершены!",
                                         parse_mode=ParseMode.HTML)
             else:
-                logger.error(f"Не удалось завершить процедуры")
+                logger.error(f"Cannot end procedures")
                 await message.edit_text(f"⚠️ <b>Не удалось завершить процедуры</b>",
                                         parse_mode=ParseMode.HTML)
                 return
@@ -156,4 +156,3 @@ class BeautyManager:
         finally:
             if self.user_info:
                 clear_user_context()
-            logger.debug("Выполнение бьюти-процедур завершено")

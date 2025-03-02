@@ -24,7 +24,7 @@ async def launch():
     dp.include_router(game_handlers.router)
 
     # Запуск бота
-    logger.info("Бот запущен")
+    logger.info("Bot is started")
     await dp.start_polling(bot)
 
 

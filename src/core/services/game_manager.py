@@ -385,22 +385,18 @@ class GameManager:
                     for game, count in games_stats.items() if count > 0
                 ])
 
-                final_status = f"✅ Авто-игра завершена! Сыграно игр: [{games_played}/{total_games}]"
                 try:
-                    await status_message.edit_text(
-                        final_status,
-                        parse_mode=ParseMode.HTML,
-                        reply_markup=get_back_profile_keyboard()
-                    )
+                    await status_message.delete()
                 except Exception as e:
                     if "message is not modified" not in str(e):
                         logger.error(f"Error updating final status: {str(e)}")
 
                 await message.edit_text(
-                    f"🎮 <b>Авто-игра</b> завершена!\n"
+                    f"✅ <b>Авто-игра</b> завершена!\n"
                     f"Сыграно игр: <b>{games_played}</b>\n\n"
                     f"<b>Статистика:</b>\n{stats_text}",
-                    parse_mode=ParseMode.HTML
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=get_back_profile_keyboard()
                 )
 
         except Exception as e:

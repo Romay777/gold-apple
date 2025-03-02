@@ -27,13 +27,13 @@ class UserManager:
         try:
             result = self.api.get_favorites()
             if not result or not result.get("success"):
-                logger.error("Не удалось получить список друзей")
+                logger.error("Unable to get friend list")
                 await message.edit_text("❌ Не удалось получить список друзей", parse_mode=ParseMode.HTML)
                 return False
 
             items = result.get("data", {}).get("items", [])
             if not items:
-                logger.warning("Список друзей пуст")
+                logger.warning("Friend list is empty")
                 await message.edit_text("❌ Список друзей пуст", parse_mode=ParseMode.HTML)
                 return False
 
@@ -41,12 +41,12 @@ class UserManager:
             like_result = self.api.like_profile(first_friend.uid)
 
             if like_result and like_result.get("success"):
-                logger.info(f"Успешно поставлен лайк пользователю {first_friend.username}")
+                logger.info(f"Successfully liked user {first_friend.username}")
                 await message.edit_text(f"☑️ Успешно поставлен лайк пользователю <b>{first_friend.username}</b>",
                                         parse_mode=ParseMode.HTML)
                 return True
             else:
-                logger.error(f"Не удалось поставить лайк пользователю {first_friend.username}")
+                logger.error(f"Unable to like user {first_friend.username}")
                 await message.edit_text(f"❌ Не удалось поставить лайк пользователю <b>{first_friend.username}</b>",
                                         parse_mode=ParseMode.HTML)
                 return False

@@ -15,6 +15,7 @@ def get_start_elf_keyboard() -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text="🎮 Сыграть в игры", callback_data="play_games")],
             [InlineKeyboardButton(text="🎁 Открыть бокс [300 🪙]", callback_data="open_box")],
             [InlineKeyboardButton(text="📋 Просмотреть квесты + награды", callback_data="view_quests")],
+            [InlineKeyboardButton(text="🤖 Авто-работа", callback_data="auto_work")]
         ]
     )
 
