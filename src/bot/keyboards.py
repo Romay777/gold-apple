@@ -38,10 +38,16 @@ def get_games_keyboard() -> InlineKeyboardMarkup:
     )
 
 def get_stop_autoplay_keyboard() -> InlineKeyboardMarkup:
-    """Возвращает клавиатуру с кнопкой остановки авто-игры"""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🛑 Остановить", callback_data="stop_auto_play")],
+        ]
+    )
+
+def get_stop_auto_work_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🛑 Остановить", callback_data="stop_auto_work")],
         ]
     )
 

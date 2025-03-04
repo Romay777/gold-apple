@@ -21,7 +21,9 @@ class GameManager:
             "score_range": (200, 220),
             "money": 100,
             "play_time": (15, 21),
-            "additional_data": {}
+            "additional_data": {
+                "booster_count": 1
+            }
         },
         "Runner": {
             "display_name": "Бьюти-пад",
@@ -211,11 +213,13 @@ class GameManager:
 
                 # Call with appropriate parameters based on the game
                 if game_name in ["Jumper", "Runner"]:
-                    end_result = end_game_method(score, money)
+                    end_result = end_game_method(score, money, additional_data)
                 elif game_name == "Match3":
-                    end_result = end_game_method(score)
+                    end_result = end_game_method(score, additional_data)
                 else:  # Memories or other games
                     end_result = end_game_method(score)
+
+                print("end_result:" + str(end_result))
 
                 if end_result and end_result.get("success"):
                     result_score = end_result.get("data", {}).get("log", {}).get("score", 0)
@@ -358,6 +362,7 @@ class GameManager:
                     logger.info(f"Successfully played {current_game}: {games_played} of {total_games}")
                 else:
                     logger.error(f"Error in game {current_game} ({games_played + 1} of {total_games})")
+                    print("err:", success)
 
                 # Update status only if text changed
                 new_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"

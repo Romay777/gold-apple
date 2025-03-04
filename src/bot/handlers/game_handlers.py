@@ -10,7 +10,8 @@ from sqlalchemy import select
 
 from src.bot.database import User
 from src.bot.handlers.auth_handlers import generate_profile_message
-from src.bot.keyboards import get_start_elf_keyboard, get_back_profile_keyboard, get_games_keyboard, get_after_box_keyboard, get_after_game_keyboard
+from src.bot.keyboards import get_start_elf_keyboard, get_back_profile_keyboard, get_games_keyboard, \
+    get_after_box_keyboard, get_after_game_keyboard, get_stop_auto_work_keyboard
 from src.config.constants import BASE_URL, AUTH_PARAMS, HEADERS
 from src.core.api.client import GameAPI, UserAPI, QuestAPI
 from src.core.services.beauty_manager import BeautyManager
@@ -250,7 +251,7 @@ async def play_jumper(callback: CallbackQuery, session):
         await game_manager.start_jumper(message)
         await message.edit_reply_markup(reply_markup=get_after_game_keyboard("jumper"))
     except:
-        logger.warn("Failed to play jumper")
+        logger.warning("Failed to play jumper")
         await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
 
 
@@ -488,9 +489,7 @@ async def auto_work_loop(message, session, state: FSMContext):
             "<b>🤖 В режиме автоматической работы</b>\n"
             "Последнее обновление: " + datetime.now().strftime("%H:%M:%S"),
             parse_mode=ParseMode.HTML,
-            reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[[InlineKeyboardButton(text="🛑 Стоп", callback_data="stop_auto_work")]]
-            )
+            reply_markup=get_stop_auto_work_keyboard()
         )
 
         # Ожидание 7 - 9 часов
