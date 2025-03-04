@@ -34,14 +34,21 @@ def get_games_keyboard() -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text="⁉️ Memories", callback_data="play_match3")],
             [InlineKeyboardButton(text="🧩 Match3", callback_data="play_match3")],
             [InlineKeyboardButton(text="🧝‍♂️ Вернуться к меню", callback_data="back_to_profile")],
+            # [InlineKeyboardButton(text="♾️ Прыжки [END]", callback_data="end_jumper")],
         ]
     )
 
 def get_stop_autoplay_keyboard() -> InlineKeyboardMarkup:
-    """Возвращает клавиатуру с кнопкой остановки авто-игры"""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🛑 Остановить", callback_data="stop_auto_play")],
+        ]
+    )
+
+def get_stop_auto_work_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🛑 Остановить", callback_data="stop_auto_work")],
         ]
     )
 

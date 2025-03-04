@@ -21,14 +21,18 @@ class GameManager:
             "score_range": (200, 220),
             "money": 100,
             "play_time": (15, 21),
-            "additional_data": {}
+            "additional_data": {
+                "booster_count": 1
+            }
         },
         "Runner": {
             "display_name": "Бьюти-пад",
             "score_range": (180, 220),
             "money": 100,
             "play_time": (15, 21),
-            "additional_data": {}
+            "additional_data": {
+
+            }
         },
         "Match3": {
             "display_name": "Три в ряд",
@@ -211,11 +215,13 @@ class GameManager:
 
                 # Call with appropriate parameters based on the game
                 if game_name in ["Jumper", "Runner"]:
-                    end_result = end_game_method(score, money)
+                    end_result = end_game_method(score, money, additional_data)
                 elif game_name == "Match3":
-                    end_result = end_game_method(score)
+                    end_result = end_game_method(score, money, additional_data)
                 else:  # Memories or other games
-                    end_result = end_game_method(score)
+                    end_result = end_game_method(score, additional_data)
+
+                print("end_result:" + str(end_result))
 
                 if end_result and end_result.get("success"):
                     result_score = end_result.get("data", {}).get("log", {}).get("score", 0)
@@ -358,6 +364,7 @@ class GameManager:
                     logger.info(f"Successfully played {current_game}: {games_played} of {total_games}")
                 else:
                     logger.error(f"Error in game {current_game} ({games_played + 1} of {total_games})")
+                    print("err:", success)
 
                 # Update status only if text changed
                 new_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"
@@ -452,3 +459,17 @@ class GameManager:
                 logger.error(f"Error opening box: {str(e)}")
                 await message.edit_text(f"❌ Ошибка при открытии ящика: {str(e)}", parse_mode=ParseMode.HTML)
                 return False
+
+    # async def end_jumper(self, message: Message):
+    #     with self._user_context():
+    #         try:
+    #             logger.info("Ending jumper")
+    #             result = self.api.end_jumper_game(200, 100, {"booster_count": 1})
+    #             if not result or not result.get("success"):
+    #                 print("Failed to end jumper: ", result)
+    #                 await message.edit_text("❌ Не удалось завершить прыжок", parse_mode=ParseMode.HTML)
+    #                 return False
+    #             return True
+    #         except Exception as e:
+    #             logger.error(f"Error ending jumper: {str(e)}")
+    #             await message.edit_text(f"❌ Ошибка при завершении прыжка: {str(e)}", parse_mode=ParseMode.HTML)

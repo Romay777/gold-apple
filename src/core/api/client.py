@@ -40,6 +40,8 @@ class BaseAPI:
             url = f"{self.base_url}/{endpoint}"
             request_params = params or self.auth_params
 
+            print(f"Sending request to {url} with data: {data}")  # Для отладки
+
             response = self.session.request(
                 method=method,
                 url=url,
@@ -60,9 +62,7 @@ class BaseAPI:
             return response.json()
 
         except requests.exceptions.RequestException as e:
-            print(f"Request error: {e}")
             if hasattr(e, 'response') and hasattr(e.response, 'text'):
-                print(f"Server response: {e.response.text}")
                 try:
                     # Try to parse and return any available JSON response
                     return e.response.json()
@@ -171,30 +171,31 @@ class GameAPI(BaseAPI):
         if additional_data:
             data.update(additional_data)
 
+        print("end_data:", data)
+
         return self._make_request(GameEndpoints.GAME_END, method="POST", data=data)
 
     # Specific game ending methods
 
-    def end_jumper_game(self, score: int, money: int) -> Optional[dict]:
+    def end_jumper_game(self, score: int, money: int, additional_data) -> Optional[dict]:
         """End Jumper game with score and money."""
-        return self._end_game(score, money)
+        print("used jumper end")
+        return self._end_game(score, money, additional_data)
 
-    def end_runner_game(self, score: int, money: int) -> Optional[dict]:
+    def end_runner_game(self, score: int, money: int, additional_data) -> Optional[dict]:
         """End Runner game with score and money."""
-        return self._end_game(score, money)
+        print("used runner end")
+        return self._end_game(score, money, additional_data)
 
-    def end_match3_game(self, score: int) -> Optional[dict]:
+    def end_match3_game(self, score: int, money: int, additional_data) -> Optional[dict]:
         """End Match3 game with score and special data."""
-        additional_data = {
-            "ram": 2,
-            "cross": 2,
-            "color": 2
-        }
-        return self._end_game(score, 100, additional_data)
+        print("used match3 end")
+        return self._end_game(score, money, additional_data)
 
-    def end_memories_game(self, score: int) -> Optional[dict]:
+    def end_memories_game(self, score: int, additional_data) -> Optional[dict]:
         """End Memories game with score."""
-        return self._end_game(score)
+        print("used memories end")
+        return self._end_game(score, additional_data=additional_data)
 
 
 class UserAPI(BaseAPI):

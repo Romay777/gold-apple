@@ -96,12 +96,12 @@ class BeautyManager:
         )
 
     async def perform_procedures(self, message: Message) -> None:
-        """Выполняет каждую бьюти процедуру по одному разу с задержкой"""
+        """Выполняет бьюти процедуру"""
         if self.user_info:
             set_user_context(self.user_info.get("id"), self.user_info.get("username"))
 
         try:
-            logger.debug("Begin perform_procedures")
+            logger.info("Begin perform_procedures")
             profile = await self.get_profile()
             if not profile:
                 logger.error("Cannot get profile")
@@ -130,7 +130,7 @@ class BeautyManager:
             else:
                 reason = result.get("data", {}).get("name", "Неизвестная причина")
                 if reason == "You have reached the day limit of this routine":
-                    logger.debug(f"Cannot start procedures", "Reason: You have reached the day limit of this routine", )
+                    logger.info(f"Cannot start procedures", "Reason: You have reached the day limit of this routine", )
                     await message.edit_text(f"⚠️ <b>Не удалось начать процедуры</b>\n"
                                             f"Причина: <b>Процедуры уже выполнены</b>\f",
                                             parse_mode=ParseMode.HTML)
