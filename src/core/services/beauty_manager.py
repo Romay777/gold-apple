@@ -135,7 +135,7 @@ class BeautyManager:
                                             f"Причина: <b>Процедуры уже выполнены</b>\f",
                                             parse_mode=ParseMode.HTML)
                 else:
-                    logger.warning(f"Cannot start procedures", "Reason: ", reason)
+                    logger.warning(f"Cannot start procedures", "Reason: ", reason, exc_info=True)
                     await message.edit_text(f"⚠️ <b>Не удалось начать процедуры</b>\n"
                                             f"Причина: <b>{reason}</b>\f",
                                             parse_mode=ParseMode.HTML)
@@ -148,7 +148,7 @@ class BeautyManager:
                 await message.edit_text(f"✨ Процедуры завершены!",
                                         parse_mode=ParseMode.HTML)
             else:
-                logger.error(f"Cannot end procedures")
+                logger.error(f"Cannot end procedures", exc_info=True)
                 await message.edit_text(f"⚠️ <b>Не удалось завершить процедуры</b>",
                                         parse_mode=ParseMode.HTML)
                 return

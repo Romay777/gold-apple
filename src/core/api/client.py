@@ -40,7 +40,7 @@ class BaseAPI:
             url = f"{self.base_url}/{endpoint}"
             request_params = params or self.auth_params
 
-            print(f"Sending request to {url} with data: {data}")  # Для отладки
+            # print(f"Sending request to {url} with data: {data}")  # Для отладки
 
             response = self.session.request(
                 method=method,
@@ -72,6 +72,10 @@ class BaseAPI:
         except ValueError as e:
             print(f"JSON parsing error: {e}")
             return None
+
+    def get_profile(self) -> Optional[dict]:
+        """Get player profile information."""
+        return self._make_request(GameEndpoints.PROFILE, method="POST", params=self.auth_params)
 
 
 class QuestAPI(BaseAPI):
@@ -122,10 +126,6 @@ class GameAPI(BaseAPI):
         data = {"id": procedure_id, "correct_count": c_count}
         return self._make_request(GameEndpoints.BEAUTY_PROCEDURE_END, method="POST", data=data)
 
-    def get_profile(self) -> Optional[dict]:
-        """Get player profile information."""
-        return self._make_request(GameEndpoints.PROFILE, method="POST", params=self.auth_params)
-
     def get_user_rating(self) -> Optional[dict]:
         """Get player rating information."""
         return self._make_request(GameEndpoints.USER_RATING, method="POST", params=self.auth_params)
@@ -153,7 +153,7 @@ class GameAPI(BaseAPI):
         """Get remaining box opening limit for today."""
         return self._make_request(GameEndpoints.OPEN_BOX_LIST)
 
-    def _end_game(self, score: int, money: int = 0, additional_data: dict = None) -> Optional[dict]:
+    def _end_game(self, score: int, money: int = 100, additional_data: dict = None) -> Optional[dict]:
         """
         Base method for ending any game.
 
@@ -171,30 +171,24 @@ class GameAPI(BaseAPI):
         if additional_data:
             data.update(additional_data)
 
-        print("end_data:", data)
-
         return self._make_request(GameEndpoints.GAME_END, method="POST", data=data)
 
     # Specific game ending methods
 
     def end_jumper_game(self, score: int, money: int, additional_data) -> Optional[dict]:
         """End Jumper game with score and money."""
-        print("used jumper end")
         return self._end_game(score, money, additional_data)
 
     def end_runner_game(self, score: int, money: int, additional_data) -> Optional[dict]:
         """End Runner game with score and money."""
-        print("used runner end")
         return self._end_game(score, money, additional_data)
 
     def end_match3_game(self, score: int, money: int, additional_data) -> Optional[dict]:
         """End Match3 game with score and special data."""
-        print("used match3 end")
         return self._end_game(score, money, additional_data)
 
     def end_memories_game(self, score: int, additional_data) -> Optional[dict]:
         """End Memories game with score."""
-        print("used memories end")
         return self._end_game(score, additional_data=additional_data)
 
 
@@ -226,3 +220,16 @@ class UserAPI(BaseAPI):
             "type": like_type
         }
         return self._make_request(GameEndpoints.LIKE, method="POST", data=data)
+
+    def get_items(self):
+        """Get list of available items."""
+        return self._make_request(GameEndpoints.ITEMS_LIST)
+
+
+    def buy_item(self, item_id: str):
+        """Buy an item."""
+        params = {
+            **self.auth_params,
+            "id": item_id
+        }
+        return self._make_request(f"{GameEndpoints.BUY_ITEM}", method="POST", params=params)

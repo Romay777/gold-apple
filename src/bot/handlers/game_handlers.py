@@ -11,14 +11,14 @@ from sqlalchemy import select
 from src.bot.database import User
 from src.bot.handlers.auth_handlers import generate_profile_message
 from src.bot.keyboards import get_start_elf_keyboard, get_back_profile_keyboard, get_games_keyboard, \
-    get_after_box_keyboard, get_after_game_keyboard, get_stop_auto_work_keyboard
+    get_after_box_keyboard, get_after_game_keyboard, get_stop_auto_work_keyboard, get_items_keyboard
 from src.config.constants import BASE_URL, AUTH_PARAMS, HEADERS
 from src.core.api.client import GameAPI, UserAPI, QuestAPI
 from src.core.services.beauty_manager import BeautyManager
 from src.core.services.game_manager import GameManager
 from src.core.services.quest_manager import QuestManager
 from src.core.services.user_manager import UserManager
-from src.utils.logger import logger, clear_user_context
+from src.utils.logger import logger, clear_user_context, set_user_context
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
@@ -235,7 +235,6 @@ async def spend_energy(callback: CallbackQuery, session, state: FSMContext):
     game_api = await get_api(callback=callback, session=session, api_to_get="game")
     game_manager = GameManager(game_api, user_info)
     await game_manager.auto_play_games(message)
-    await message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
 
 @router.callback_query(F.data == "play_jumper")
 async def play_jumper(callback: CallbackQuery, session):
@@ -362,17 +361,13 @@ async def open_box(callback: CallbackQuery, session, state: FSMContext):
 
 @router.callback_query(F.data == "view_quests")
 async def show_quests(callback: CallbackQuery, session, state: FSMContext):
-    current_state = await state.get_state()
-    if current_state == AutoWorkStates.active:
-        await callback.answer("Авто-работа активна! Сначала остановите её.")
-        return
-
-    message = await callback.message.edit_text("🧝‍♂️ <b>Просматриваю квесты и награды!</b>\n⏳ Получаю данные...",
-                                               parse_mode=ParseMode.HTML)
     user_info = {
         'id': callback.from_user.id,
         'username': callback.from_user.username
     }
+
+    message = await callback.message.edit_text("🧝‍♂️ <b>Просматриваю квесты и награды!</b>\n⏳ Получаю данные...",
+                                               parse_mode=ParseMode.HTML)
     await asyncio.sleep(0.5)
 
     quest_api = await get_api(callback=callback,session=session, api_to_get="quest")
@@ -383,7 +378,7 @@ async def show_quests(callback: CallbackQuery, session, state: FSMContext):
         parse_mode=ParseMode.HTML
     )
 
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.5)
 
     await message.edit_text(
         "📋 <b>Состояние квестов:</b>\n"
@@ -391,6 +386,37 @@ async def show_quests(callback: CallbackQuery, session, state: FSMContext):
         parse_mode=ParseMode.HTML,
         reply_markup=get_back_profile_keyboard()
     )
+
+@router.callback_query(F.data == "get_items_to_buy")
+async def get_items_to_buy(callback: CallbackQuery, session, state: FSMContext):
+    user_info = {
+        'id': callback.from_user.id,
+        'username': callback.from_user.username
+    }
+
+    user_api = await get_api(callback=callback, session=session, api_to_get="user")
+    users_manager = UserManager(user_api, user_info)
+
+    items = await users_manager.find_cheapest_clothes(callback.message) # list
+    # 0 -> cheapest interior
+    # 1 -> cheapest clothes
+
+    await callback.message.edit_text("🧝‍♂️ <b>Выберите предмет!</b>",
+                                               parse_mode=ParseMode.HTML,
+                                               reply_markup=get_items_keyboard(items[0], items[1]))
+
+
+@router.callback_query(F.data.startswith("buy_item_"))
+async def buy_item(callback: CallbackQuery, session, state: FSMContext):
+    user_info = {
+        'id': callback.from_user.id,
+        'username': callback.from_user.username
+    }
+
+    user_api = await get_api(callback=callback, session=session, api_to_get="user")
+    users_manager = UserManager(user_api, user_info)
+
+    await users_manager.buy_item(callback.message, callback.data.split("_")[2])
 
 @router.callback_query(F.data == "back_to_profile")
 async def back_to_profile(callback: CallbackQuery, session):
@@ -437,6 +463,7 @@ async def auto_work_loop(message, session, state: FSMContext):
     while True:
         if await state.get_state() != AutoWorkStates.active:
             break
+        current_day = datetime.now().day
         try:
             user_info = {
                 'id': message.chat.id,
@@ -447,6 +474,7 @@ async def auto_work_loop(message, session, state: FSMContext):
             game_api = await get_api(message=message, session=session, api_to_get="game")
             user_api = await get_api(message=message, session=session, api_to_get="user")
             quest_api = await get_api(message=message, session=session, api_to_get="quest")
+            set_user_context(user_info.get("id"), user_info.get("username"))
             logger.info("API's got, AutoWork started")
 
             beauty_manager = BeautyManager(game_api, user_info)
@@ -458,32 +486,41 @@ async def auto_work_loop(message, session, state: FSMContext):
             game_manager = GameManager(game_api, user_info)
             await game_manager.auto_play_games(message)
 
-            # Лайк другу (test)
+            # 3. Лайк другу (test)
             users_manager = UserManager(user_api, user_info)
             await users_manager.like_first_friend(message)
 
             await asyncio.sleep(random.uniform(1, 2))
 
-            # 3. Открытие боксов (до 5 или лимита)
-            box_count = 0
-            while box_count < 5:
-                limit = await game_manager.get_limit(message)
-                if limit <= 0: break
+            # 4. Открытие боксов
+            profile = await beauty_manager.get_profile()
+            can_open = profile.money // 300
+            system_box_limit = await game_manager.get_limit(message)
 
+            # Открываем боксы, не превышая доступное количество и системный лимит
+            num_boxes_to_open = min(can_open, system_box_limit)
+            for _ in range(num_boxes_to_open):
                 await game_manager.open_box(message)
-                box_count += 1
                 await asyncio.sleep(1)
 
-            await asyncio.sleep(random.uniform(1, 2))
+            await asyncio.sleep(1)
 
-            # 4. Сбор наград
+            # 5. Покупка вещи+интерьера
+            # await buy_item(message, session, state)
+            #
+            # await asyncio.sleep(random.uniform(1, 2))
+
+            # 6. Сбор наград
             quest_manager = QuestManager(quest_api, user_info)
             quest_manager.format_rewards_collection()
 
-            clear_user_context()
+            # 7. Повтор игры после сбора наград
+            await game_manager.auto_play_games(message)
 
         except Exception as e:
             logger.error(f"Auto-work error: {str(e)}")
+        finally:
+            clear_user_context()
 
         await message.edit_text(
             "<b>🤖 В режиме автоматической работы</b>\n"
@@ -497,24 +534,12 @@ async def auto_work_loop(message, session, state: FSMContext):
 
 
 @router.callback_query(F.data == "stop_auto_work")
-async def stop_auto_work(callback: CallbackQuery, state: FSMContext):
+async def init_stop_auto_work(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text(
         "❌ Авто-работа остановлена",
         reply_markup=get_back_profile_keyboard()
     )
 
-# @router.callback_query(F.data == "end_jumper")
-# async def end_jumper(callback: CallbackQuery, session):
-#     user_info = {
-#         'id': callback.from_user.id,
-#         'username': callback.from_user.username
-#     }
-#
-#     game_api = await get_api(callback=callback, session=session, api_to_get="game")
-#     game_manager = GameManager(game_api, user_info)
-#     try:
-#         await game_manager.end_jumper(callback.message)
-#         await callback.message.edit_reply_markup(reply_markup=get_back_profile_keyboard())
-#     except:
-#         print("EXCEPTIOPN")
+    set_user_context(callback.from_user.id, callback.chat.username)
+    logger.info("Stopped auto-work")

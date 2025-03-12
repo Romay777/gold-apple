@@ -16,24 +16,24 @@ class GameManager:
 
     # Game configurations - centralized game definitions
     GAMES = {
-        "Jumper": {
-            "display_name": "Прыжки",
-            "score_range": (200, 220),
-            "money": 100,
-            "play_time": (15, 21),
-            "additional_data": {
-                "booster_count": 1
-            }
-        },
-        "Runner": {
-            "display_name": "Бьюти-пад",
-            "score_range": (180, 220),
-            "money": 100,
-            "play_time": (15, 21),
-            "additional_data": {
-
-            }
-        },
+        # "Jumper": {
+        #     "display_name": "Прыжки",
+        #     "score_range": (200, 220),
+        #     "money": 100,
+        #     "play_time": (15, 21),
+        #     "additional_data": {
+        #         "booster_count": 1
+        #     }
+        # },
+        # "Runner": {
+        #     "display_name": "Бьюти-пад",
+        #     "score_range": (180, 220),
+        #     "money": 100,
+        #     "play_time": (15, 21),
+        #     "additional_data": {
+        #
+        #     }
+        # },
         "Match3": {
             "display_name": "Три в ряд",
             "score_range": (45, 55),
@@ -154,7 +154,7 @@ class GameManager:
         return UserContextManager(self)
 
     # --- Game playing methods ---
-
+    
     async def play_game(self, game_name: str, message: Message, tg_logging: bool = True) -> bool:
         """
         Universal method to play any game with consistent handling.
@@ -221,7 +221,7 @@ class GameManager:
                 else:  # Memories or other games
                     end_result = end_game_method(score, additional_data)
 
-                print("end_result:" + str(end_result))
+                # print("end_result:" + str(end_result))
 
                 if end_result and end_result.get("success"):
                     result_score = end_result.get("data", {}).get("log", {}).get("score", 0)
@@ -289,11 +289,17 @@ class GameManager:
 
     async def start_jumper(self, message: Message):
         """Start playing Jumper game."""
-        return await self.start_game("Jumper", message)
+        await message.edit_text('disabled', parse_mode=ParseMode.HTML,
+                                reply_markup=get_back_profile_keyboard())
+        return
+        # return await self.start_game("Jumper", message)
 
     async def start_runner(self, message: Message):
         """Start playing Runner game."""
-        return await self.start_game("Runner", message)
+        await message.edit_text('disabled', parse_mode=ParseMode.HTML,
+                                reply_markup=get_back_profile_keyboard())
+        return
+        # return await self.start_game("Runner", message)
 
     async def start_match3(self, message: Message):
         """Start playing Match3 game."""
@@ -318,101 +324,102 @@ class GameManager:
         games_to_play = [game_name] if game_name and game_name in self.GAMES else list(self.GAMES.keys())
 
         self.auto_play_running = True
+        with self._user_context():
+            try:
+                # Get current player energy
+                energy = await self.get_user_energy()
 
-        try:
-            # Get current player energy
-            energy = await self.get_user_energy()
+                if energy <= 0:
+                    await message.edit_text("❌ Недостаточно энергии для игры", parse_mode=ParseMode.HTML)
+                    return
 
-            if energy <= 0:
-                await message.edit_text("❌ Недостаточно энергии для игры", parse_mode=ParseMode.HTML)
-                return
+                logger.info(f"Starting auto-play for {len(games_to_play)} games. Available energy: {energy}")
 
-            logger.info(f"Starting auto-play for {len(games_to_play)} games. Available energy: {energy}")
+                games_display = ", ".join([self.GAMES[g]["display_name"] for g in games_to_play])
+                await message.edit_text(f"🎮 <b>Авто-игра</b> запущена!\nИгры: {games_display}\nДоступно энергии: {energy}",
+                                        parse_mode=ParseMode.HTML)
 
-            games_display = ", ".join([self.GAMES[g]["display_name"] for g in games_to_play])
-            await message.edit_text(f"🎮 <b>Авто-игра</b> запущена!\nИгры: {games_display}\nДоступно энергии: {energy}",
-                                    parse_mode=ParseMode.HTML)
+                games_played = 0
+                total_games = energy
 
-            games_played = 0
-            total_games = energy
-
-            # Create status message with stop button
-            keyboard = get_stop_autoplay_keyboard()
-            status_message = await message.answer(
-                f"⏳ Прогресс: [{games_played}/{total_games}]",
-                parse_mode=ParseMode.HTML,
-                reply_markup=keyboard
-            )
-
-            # Track last status text to prevent "message not modified" errors
-            last_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"
-
-            # Track played games
-            games_stats = {game: 0 for game in games_to_play}
-
-            # Keep playing until energy is depleted
-            while games_played < total_games and self.auto_play_running:
-                # Round-robin selection of games
-                current_game = games_to_play[games_played % len(games_to_play)]
-
-                # Play the selected game
-                success = await self.play_game(current_game, message, tg_logging=False)
-
-                if success:
-                    games_played += 1
-                    games_stats[current_game] += 1
-                    logger.info(f"Successfully played {current_game}: {games_played} of {total_games}")
-                else:
-                    logger.error(f"Error in game {current_game} ({games_played + 1} of {total_games})")
-                    print("err:", success)
-
-                # Update status only if text changed
-                new_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"
-                if new_status_text != last_status_text:
-                    try:
-                        await status_message.edit_text(
-                            new_status_text,
-                            parse_mode=ParseMode.HTML,
-                            reply_markup=keyboard
-                        )
-                        last_status_text = new_status_text
-                    except Exception as e:
-                        if "message is not modified" not in str(e):
-                            logger.error(f"Error updating status: {str(e)}")
-
-                # Pause between games
-                if games_played < total_games and self.auto_play_running:
-                    await asyncio.sleep(1)
-
-            # Final message with detailed statistics
-            if self.auto_play_running:
-                # Prepare detailed stats
-                stats_text = "\n".join([
-                    f"- {self.GAMES[game]['display_name']}: {count}"
-                    for game, count in games_stats.items() if count > 0
-                ])
-
-                try:
-                    await status_message.delete()
-                except Exception as e:
-                    if "message is not modified" not in str(e):
-                        logger.error(f"Error updating final status: {str(e)}")
-
-                await message.edit_text(
-                    f"✅ <b>Авто-игра</b> завершена!\n"
-                    f"Сыграно игр: <b>{games_played}</b>\n\n"
-                    f"<b>Статистика:</b>\n{stats_text}",
+                # Create status message with stop button
+                keyboard = get_stop_autoplay_keyboard()
+                status_message = await message.answer(
+                    f"⏳ Прогресс: [{games_played}/{total_games}]",
                     parse_mode=ParseMode.HTML,
-                    reply_markup=get_back_profile_keyboard()
+                    reply_markup=keyboard
                 )
 
-        except Exception as e:
-            logger.error(f"Error in auto_play_games: {str(e)}")
-            await message.edit_text(f"❌ Ошибка при автоматической игре: {str(e)}", parse_mode=ParseMode.HTML)
+                # Track last status text to prevent "message not modified" errors
+                last_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"
 
-        finally:
-            # Reset auto-play flag
-            self.auto_play_running = False
+                # Track played games
+                games_stats = {game: 0 for game in games_to_play}
+
+                # Keep playing until energy is depleted
+                while games_played < total_games and self.auto_play_running:
+                    # Round-robin selection of games
+                    current_game = games_to_play[games_played % len(games_to_play)]
+
+                    # Play the selected game
+                    success = await self.play_game(current_game, message, tg_logging=False)
+
+                    if success:
+                        games_played += 1
+                        games_stats[current_game] += 1
+                        logger.info(f"Successfully played {current_game}: {games_played} of {total_games}")
+                    else:
+                        logger.error(f"Error in game {current_game} ({games_played + 1} of {total_games})")
+                        print("err:", success)
+
+                    # Update status only if text changed
+                    new_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"
+                    if new_status_text != last_status_text:
+                        try:
+                            await status_message.edit_text(
+                                new_status_text,
+                                parse_mode=ParseMode.HTML,
+                                reply_markup=keyboard
+                            )
+                            last_status_text = new_status_text
+                        except Exception as e:
+                            if "message is not modified" not in str(e):
+                                logger.error(f"Error updating status: {str(e)}", exc_info=True)
+
+                    # Pause between games
+                    if games_played < total_games and self.auto_play_running:
+                        await asyncio.sleep(1)
+
+                # Final message with detailed statistics
+                if self.auto_play_running:
+                    # Prepare detailed stats
+                    stats_text = "\n".join([
+                        f"- {self.GAMES[game]['display_name']}: {count}"
+                        for game, count in games_stats.items() if count > 0
+                    ])
+
+                    try:
+                        await status_message.delete()
+                    except Exception as e:
+                        if "message is not modified" not in str(e):
+                            logger.error(f"Error updating final status: {str(e)}", exc_info=True)
+
+                    await message.edit_text(
+                        f"✅ <b>Авто-игра</b> завершена!\n"
+                        f"Сыграно игр: <b>{games_played}</b>\n\n"
+                        f"<b>Статистика:</b>\n{stats_text}",
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=get_back_profile_keyboard()
+                    )
+
+            except Exception as e:
+                logger.error(f"Error in auto_play_games: {str(e)}", exc_info=True)
+                await message.edit_text(f"❌ Ошибка при автоматической игре: {str(e)}", parse_mode=ParseMode.HTML,
+                                        reply_markup=get_back_profile_keyboard())
+
+            finally:
+                # Reset auto-play flag
+                self.auto_play_running = False
 
     # --- Box opening functionality ---
 
@@ -455,9 +462,9 @@ class GameManager:
 
                 await message.edit_text(msg, parse_mode=ParseMode.HTML)
                 return True
-            except Exception as e:
-                logger.error(f"Error opening box: {str(e)}")
-                await message.edit_text(f"❌ Ошибка при открытии ящика: {str(e)}", parse_mode=ParseMode.HTML)
+            except:
+                logger.error(f"Error opening box")
+                await message.edit_text(f"❌ Ошибка при открытии ящика", parse_mode=ParseMode.HTML)
                 return False
 
     # async def end_jumper(self, message: Message):

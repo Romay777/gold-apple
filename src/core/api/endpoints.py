@@ -10,6 +10,8 @@ class GameEndpoints:
     COLLECT_QUEST = "game/collect-quest"
     FAVORITES = "user/favorites"
     LIKE = "user/like"
+    ITEMS_LIST = "shop/items"
+    BUY_ITEM = "shop/buy"
 
     GAME_LIST = "game/list"
     GAME_START = "game/start"

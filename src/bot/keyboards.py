@@ -15,6 +15,7 @@ def get_start_elf_keyboard() -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text="🎮 Сыграть в игры", callback_data="play_games")],
             [InlineKeyboardButton(text="🎁 Открыть бокс [300 🪙]", callback_data="open_box")],
             [InlineKeyboardButton(text="📋 Просмотреть квесты + награды", callback_data="view_quests")],
+            [InlineKeyboardButton(text="🧝‍♂️ Купить предмет", callback_data="get_items_to_buy")],
             [InlineKeyboardButton(text="🤖 Авто-работа", callback_data="auto_work")]
         ]
     )
@@ -29,12 +30,20 @@ def get_back_profile_keyboard() -> InlineKeyboardMarkup:
 def get_games_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="♾️ Прыжки", callback_data="play_jumper")],
-            [InlineKeyboardButton(text="👛 Бьюти-пад", callback_data="play_runner")],
-            [InlineKeyboardButton(text="⁉️ Memories", callback_data="play_match3")],
+            # [InlineKeyboardButton(text="♾️ Прыжки", callback_data="play_jumper")],
+            # [InlineKeyboardButton(text="👛 Бьюти-пад", callback_data="play_runner")],
+            [InlineKeyboardButton(text="⁉️ Memories", callback_data="play_memories")],
             [InlineKeyboardButton(text="🧩 Match3", callback_data="play_match3")],
             [InlineKeyboardButton(text="🧝‍♂️ Вернуться к меню", callback_data="back_to_profile")],
-            # [InlineKeyboardButton(text="♾️ Прыжки [END]", callback_data="end_jumper")],
+        ]
+    )
+
+def get_items_keyboard(interior, cloth) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=f"👕 {cloth['title']} за {cloth["cost"]} 🪙", callback_data=f"buy_item_{cloth["id"]}")],
+            [InlineKeyboardButton(text=f"🏠 {interior['title']} за {interior["cost"]} 🪙", callback_data=f"buy_item_{interior['id']}")],
+            [InlineKeyboardButton(text="🧝‍♂️ Вернуться к меню", callback_data="back_to_profile")],
         ]
     )
 

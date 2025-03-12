@@ -28,7 +28,7 @@ class TelegramUserFormatter(logging.Formatter):
         try:
             user_id = current_user_id.get()
             username = current_username.get()
-            user_info = f"[USER_ID:{user_id}|@{username}] " if user_id and username else ""
+            user_info = f"[ID:{user_id}|@{username}] " if user_id and username else ""
         except Exception:
             user_info = ""
 
