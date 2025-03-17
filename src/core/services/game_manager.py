@@ -183,7 +183,8 @@ class GameManager:
                 # Start the game
                 result = self.api.start_game(game_name)
                 if not result or not result.get("success"):
-                    logger.error(f"Failed to start game {game_name}")
+                    logger.error(f"Failed to start game {game_name} \n RES: {result}")
+
                     if tg_logging:
                         await message.edit_text(f"🎮 <b>{display_name}</b> не удалось начать!",
                                                 parse_mode=ParseMode.HTML)
@@ -324,102 +325,104 @@ class GameManager:
         games_to_play = [game_name] if game_name and game_name in self.GAMES else list(self.GAMES.keys())
 
         self.auto_play_running = True
-        with self._user_context():
-            try:
-                # Get current player energy
-                energy = await self.get_user_energy()
+        if self.user_info:
+            set_user_context(self.user_info.get("id"), self.user_info.get("username"))
 
-                if energy <= 0:
-                    await message.edit_text("❌ Недостаточно энергии для игры", parse_mode=ParseMode.HTML)
-                    return
+        try:
+            # Get current player energy
+            energy = await self.get_user_energy()
 
-                logger.info(f"Starting auto-play for {len(games_to_play)} games. Available energy: {energy}")
+            if energy <= 0:
+                await message.edit_text("❌ Недостаточно энергии для игры", parse_mode=ParseMode.HTML)
+                return
 
-                games_display = ", ".join([self.GAMES[g]["display_name"] for g in games_to_play])
-                await message.edit_text(f"🎮 <b>Авто-игра</b> запущена!\nИгры: {games_display}\nДоступно энергии: {energy}",
-                                        parse_mode=ParseMode.HTML)
+            logger.info(f"Starting auto-play for {len(games_to_play)} games. Available energy: {energy}")
 
-                games_played = 0
-                total_games = energy
+            games_display = ", ".join([self.GAMES[g]["display_name"] for g in games_to_play])
+            await message.edit_text(f"🎮 <b>Авто-игра</b> запущена!\nИгры: {games_display}\nДоступно энергии: {energy}",
+                                    parse_mode=ParseMode.HTML)
 
-                # Create status message with stop button
-                keyboard = get_stop_autoplay_keyboard()
-                status_message = await message.answer(
-                    f"⏳ Прогресс: [{games_played}/{total_games}]",
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=keyboard
-                )
+            games_played = 0
+            total_games = energy
 
-                # Track last status text to prevent "message not modified" errors
-                last_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"
+            # Create status message with stop button
+            keyboard = get_stop_autoplay_keyboard()
+            status_message = await message.answer(
+                f"⏳ Прогресс: [{games_played}/{total_games}]",
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboard
+            )
 
-                # Track played games
-                games_stats = {game: 0 for game in games_to_play}
+            # Track last status text to prevent "message not modified" errors
+            last_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"
 
-                # Keep playing until energy is depleted
-                while games_played < total_games and self.auto_play_running:
-                    # Round-robin selection of games
-                    current_game = games_to_play[games_played % len(games_to_play)]
+            # Track played games
+            games_stats = {game: 0 for game in games_to_play}
 
-                    # Play the selected game
-                    success = await self.play_game(current_game, message, tg_logging=False)
+            # Keep playing until energy is depleted
+            while games_played < total_games and self.auto_play_running:
+                # Round-robin selection of games
+                current_game = games_to_play[games_played % len(games_to_play)]
 
-                    if success:
-                        games_played += 1
-                        games_stats[current_game] += 1
-                        logger.info(f"Successfully played {current_game}: {games_played} of {total_games}")
-                    else:
-                        logger.error(f"Error in game {current_game} ({games_played + 1} of {total_games})")
-                        print("err:", success)
+                # Play the selected game
+                success = await self.play_game(current_game, message, tg_logging=False)
 
-                    # Update status only if text changed
-                    new_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"
-                    if new_status_text != last_status_text:
-                        try:
-                            await status_message.edit_text(
-                                new_status_text,
-                                parse_mode=ParseMode.HTML,
-                                reply_markup=keyboard
-                            )
-                            last_status_text = new_status_text
-                        except Exception as e:
-                            if "message is not modified" not in str(e):
-                                logger.error(f"Error updating status: {str(e)}", exc_info=True)
+                if success:
+                    games_played += 1
+                    games_stats[current_game] += 1
+                    logger.info(f"Successfully played {current_game}: {games_played} of {total_games}")
+                else:
+                    logger.error(f"Error in game {current_game} ({games_played + 1} of {total_games})")
+                    print("err:", success)
 
-                    # Pause between games
-                    if games_played < total_games and self.auto_play_running:
-                        await asyncio.sleep(1)
-
-                # Final message with detailed statistics
-                if self.auto_play_running:
-                    # Prepare detailed stats
-                    stats_text = "\n".join([
-                        f"- {self.GAMES[game]['display_name']}: {count}"
-                        for game, count in games_stats.items() if count > 0
-                    ])
-
+                # Update status only if text changed
+                new_status_text = f"⏳ Прогресс: [{games_played}/{total_games}]"
+                if new_status_text != last_status_text:
                     try:
-                        await status_message.delete()
+                        await status_message.edit_text(
+                            new_status_text,
+                            parse_mode=ParseMode.HTML,
+                            reply_markup=keyboard
+                        )
+                        last_status_text = new_status_text
                     except Exception as e:
                         if "message is not modified" not in str(e):
-                            logger.error(f"Error updating final status: {str(e)}", exc_info=True)
+                            logger.error(f"Error updating status: {str(e)}", exc_info=True)
 
-                    await message.edit_text(
-                        f"✅ <b>Авто-игра</b> завершена!\n"
-                        f"Сыграно игр: <b>{games_played}</b>\n\n"
-                        f"<b>Статистика:</b>\n{stats_text}",
-                        parse_mode=ParseMode.HTML,
-                        reply_markup=get_back_profile_keyboard()
-                    )
+                # Pause between games
+                if games_played < total_games and self.auto_play_running:
+                    await asyncio.sleep(1)
 
-            except Exception as e:
-                logger.error(f"Error in auto_play_games: {str(e)}", exc_info=True)
-                await message.edit_text(f"❌ Ошибка при автоматической игре: {str(e)}", parse_mode=ParseMode.HTML,
-                                        reply_markup=get_back_profile_keyboard())
+            # Final message with detailed statistics
+            if self.auto_play_running:
+                # Prepare detailed stats
+                stats_text = "\n".join([
+                    f"- {self.GAMES[game]['display_name']}: {count}"
+                    for game, count in games_stats.items() if count > 0
+                ])
 
-            finally:
-                # Reset auto-play flag
-                self.auto_play_running = False
+                try:
+                    await status_message.delete()
+                except Exception as e:
+                    if "message is not modified" not in str(e):
+                        logger.error(f"Error updating final status: {str(e)}", exc_info=True)
+
+                await message.edit_text(
+                    f"✅ <b>Авто-игра</b> завершена!\n"
+                    f"Сыграно игр: <b>{games_played}</b>\n\n"
+                    f"<b>Статистика:</b>\n{stats_text}",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=get_back_profile_keyboard()
+                )
+
+        except Exception as e:
+            logger.error(f"Error in auto_play_games: {str(e)}", exc_info=True)
+            await message.edit_text(f"❌ Ошибка при автоматической игре: {str(e)}", parse_mode=ParseMode.HTML,
+                                    reply_markup=get_back_profile_keyboard())
+
+        finally:
+            # Reset auto-play flag
+            self.auto_play_running = False
 
     # --- Box opening functionality ---
 

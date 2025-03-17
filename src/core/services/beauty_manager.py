@@ -109,7 +109,7 @@ class BeautyManager:
                 return
 
             if profile.money < 250:
-                logger.warn("Not enough money")
+                logger.warn("Not enough money for perform_procedures")
                 await message.edit_text("🚫 <b>Недостаточно денег</b>", parse_mode=ParseMode.HTML)
                 return
 
@@ -123,6 +123,7 @@ class BeautyManager:
                 return
 
             result = self.api.perform_beauty_procedure(b_id)
+            print(result)
             if result and result.get("success"):
                 logger.info(f"Successfully started procedures")
                 await message.edit_text(f"☑️ <b>Успешно запущены процедуры!</b>",
@@ -130,7 +131,7 @@ class BeautyManager:
             else:
                 reason = result.get("data", {}).get("name", "Неизвестная причина")
                 if reason == "You have reached the day limit of this routine":
-                    logger.info(f"Cannot start procedures", "Reason: You have reached the day limit of this routine", )
+                    logger.info(f"Cannot start procedures, Reason: You have reached the day limit of this routine", )
                     await message.edit_text(f"⚠️ <b>Не удалось начать процедуры</b>\n"
                                             f"Причина: <b>Процедуры уже выполнены</b>\f",
                                             parse_mode=ParseMode.HTML)

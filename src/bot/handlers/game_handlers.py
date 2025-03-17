@@ -541,5 +541,5 @@ async def init_stop_auto_work(callback: CallbackQuery, state: FSMContext):
         reply_markup=get_back_profile_keyboard()
     )
 
-    set_user_context(callback.from_user.id, callback.chat.username)
+    set_user_context(callback.from_user.id, callback.from_user.username)
     logger.info("Stopped auto-work")

@@ -40,7 +40,7 @@ class BaseAPI:
             url = f"{self.base_url}/{endpoint}"
             request_params = params or self.auth_params
 
-            # print(f"Sending request to {url} with data: {data}")  # Для отладки
+            print(f"Sending request to {url} with data: {data}")  # Для отладки
 
             response = self.session.request(
                 method=method,
@@ -50,12 +50,19 @@ class BaseAPI:
                 timeout=timeout
             )
 
+            print(f'Sending req with:\nURL: {url}\nMethod: {method}\nParams: {request_params}\nJSON data: {data}\nHeaders: {self.session.headers}')
+
             # Handle common API error responses
             if response.status_code == 400:
                 error_data = response.json()
                 error_message = error_data.get('message', 'Unknown error')
                 print(f"API Error: {error_message}")
                 return None
+            if response.status_code == 403:
+                print(f"API Error: 403 FORBIDDEN")
+                return None
+
+            print(f"GOT CODE: {response.status_code}")
 
             # Handle other error status codes
             response.raise_for_status()
@@ -65,9 +72,14 @@ class BaseAPI:
             if hasattr(e, 'response') and hasattr(e.response, 'text'):
                 try:
                     # Try to parse and return any available JSON response
+                    print(f"JSON PARSE ERR 1: {e}")
                     return e.response.json()
                 except ValueError:
+                    print(f"JSON PARSE ERR 2: {e}")
                     return None
+            print(f"Request exception error: {e}")
+            print(f"\nRESPONSE TEXT: {e.response.text}")
+            print(f"\nRESPONSE: {e.response}")
             return None
         except ValueError as e:
             print(f"JSON parsing error: {e}")
@@ -142,6 +154,7 @@ class GameAPI(BaseAPI):
             game_type: Type of game to start
         """
         data = {"type": game_type}
+        print('Sending game start request')
         return self._make_request(GameEndpoints.GAME_START, method="POST", data=data)
 
     def open_standard_box(self) -> Optional[dict]:
