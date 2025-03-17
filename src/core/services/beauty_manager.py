@@ -109,7 +109,7 @@ class BeautyManager:
                 return
 
             if profile.money < 250:
-                logger.warn("Not enough money for perform_procedures")
+                logger.warn("Not enough money")
                 await message.edit_text("🚫 <b>Недостаточно денег</b>", parse_mode=ParseMode.HTML)
                 return
 
@@ -123,7 +123,6 @@ class BeautyManager:
                 return
 
             result = self.api.perform_beauty_procedure(b_id)
-            print(result)
             if result and result.get("success"):
                 logger.info(f"Successfully started procedures")
                 await message.edit_text(f"☑️ <b>Успешно запущены процедуры!</b>",
@@ -131,12 +130,12 @@ class BeautyManager:
             else:
                 reason = result.get("data", {}).get("name", "Неизвестная причина")
                 if reason == "You have reached the day limit of this routine":
-                    logger.info(f"Cannot start procedures, Reason: You have reached the day limit of this routine", )
+                    logger.info(f"Cannot start procedures", "Reason: You have reached the day limit of this routine", )
                     await message.edit_text(f"⚠️ <b>Не удалось начать процедуры</b>\n"
                                             f"Причина: <b>Процедуры уже выполнены</b>\f",
                                             parse_mode=ParseMode.HTML)
                 else:
-                    logger.warning(f"Cannot start procedures", "Reason: ", reason, exc_info=True)
+                    logger.warning(f"Cannot start procedures", "Reason: ", reason)
                     await message.edit_text(f"⚠️ <b>Не удалось начать процедуры</b>\n"
                                             f"Причина: <b>{reason}</b>\f",
                                             parse_mode=ParseMode.HTML)
@@ -149,7 +148,7 @@ class BeautyManager:
                 await message.edit_text(f"✨ Процедуры завершены!",
                                         parse_mode=ParseMode.HTML)
             else:
-                logger.error(f"Cannot end procedures", exc_info=True)
+                logger.error(f"Cannot end procedures")
                 await message.edit_text(f"⚠️ <b>Не удалось завершить процедуры</b>",
                                         parse_mode=ParseMode.HTML)
                 return
